@@ -69,7 +69,7 @@ test('the newest exchange is always there, even alone over the budget; days of z
   assert.equal(m.surface.slice('u', 10)[0].content, '很长'.repeat(2000))
   assert.equal(m.surface.read('u').messages[0].content, '很长'.repeat(2000))
   assert.equal(m.surface.read('u').tokens, Math.trunc(huge.tokens))
-  const other = new Mneme(':memory:', 't', { surfaceDays: 0 })
+  const other = new Mneme(':memory:', 't', { surfaceDays: 0, embed: false })
   assert.equal(other.surface.span, 1)
 })
 

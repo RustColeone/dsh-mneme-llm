@@ -5,9 +5,12 @@ export const DAY = 86400
 export const START = Date.UTC(2026, 0, 1, 12) / 1000
 export const UTC = { offset: 0 }
 
-export function companion ({ config = null, complete = null, at = START, file = ':memory:', name = '小鲸' } = {}) {
+/** A companion on a clock the test moves; no embedder unless one is given (no test reaches a network). */
+export function companion ({ config = null, complete = null, at = START, file = ':memory:', name = '小鲸', embed = false,
+  memoryLanguage = null, judge = null, ...options } = {}) {
   const clock = { now: at }
-  const m = new Mneme(file, 't', { config, zone: UTC, clock: () => clock.now, companionName: name, complete })
+  const m = new Mneme(file, 't', { config, zone: UTC, clock: () => clock.now, companionName: name, complete, embed,
+    memoryLanguage, judge, ...options })
   return [m, clock]
 }
 

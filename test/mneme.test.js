@@ -16,14 +16,15 @@ const file = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-')), '
 
 test('the file takes a config once, when it first meets the space; an option wins for the process only', () => {
   const where = file()
-  let m = new Mneme(where, 'whale', { config: { companion: { name: '大肥鱼', display_language: 'zh', zone: 'UTC+8' } } })
+  let m = new Mneme(where, 'whale', { config: { companion: { name: '大肥鱼', display_language: 'zh', zone: 'UTC+8' } },
+    embed: false })
   assert.deepEqual([m.companionName, m.displayLanguage], ['大肥鱼', 'zh'])
   m.close()
-  m = new Mneme(where, 'whale', { config: { companion: { name: 'Other' } }, companionName: 'Today' })
+  m = new Mneme(where, 'whale', { config: { companion: { name: 'Other' } }, companionName: 'Today', embed: false })
   assert.deepEqual([m.companionName, m.config.get('companion.name')], ['Today', '大肥鱼'])
   assert.deepEqual(m.config.zone(), { offset: 8 * 3600 })
   m.close()
-  m = new Mneme(where, 'another')
+  m = new Mneme(where, 'another', { embed: false })
   assert.equal(m.companionName, 'the assistant')
   m.close()
 })

@@ -16,8 +16,8 @@ export const SCENARIO = fileURLToPath(new URL('../test/fixtures/scenario.json', 
 
 export const scenario = () => JSON.parse(fs.readFileSync(SCENARIO, 'utf8'))
 
-export const opened = (file, given, state) => new Mneme(file, given.space, { config: given.config,
-  clock: () => state.t })
+export const opened = (file, given, state) => new Mneme(file, given.space, { config: given.config, embed: false,
+  memoryLanguage: null, clock: () => state.t })
 
 /** The operations, in order; what the summary writer was asked, and what each let-go came to. */
 export async function apply (m, state, ops) {
@@ -28,7 +28,7 @@ export async function apply (m, state, ops) {
     else if (kind === 'observe') {
       const [at, subject, conversation, lines] = rest
       state.t = at
-      m.observe(subject, lines, { conversation })
+      await m.observe(subject, lines, { conversation })
     } else if (kind === 'search') m.episodes.search(rest[0], rest[1], { refresh: rest[2] })
     else if (kind === 'let_go') {
       const [subject, user, summary] = rest

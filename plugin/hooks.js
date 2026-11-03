@@ -49,7 +49,7 @@ export function open (config = {}) {
   const seed = { companion: { ...(config.companion ? { name: config.companion } : {}),
     ...(config.zone ? { zone: config.zone } : {}) } }
   const mneme = new Mneme(config.file || path.join(folder, 'memory.db'), config.space || name, { config: seed,
-    ...(config.companion ? { companionName: config.companion } : {}) })
+    embed: false, ...(config.companion ? { companionName: config.companion } : {}) })
   const gut = config.gut === false ? null : new Gut(path.join(folder, 'gut.db'), {
     starter: config.starter === false ? null : config.starter || STARTER, tags: config.tags || {},
     ...(config.names ? { names: config.names } : {})
@@ -129,10 +129,9 @@ export function hooks (ctx, config = {}, { createUserMessage }) {
     waiting.delete(agent)
     const reply = textOf(agent.session.deriveMessages().filter(message => message.role === 'assistant').at(-1))
     if (!reply) return
-    try { // deep memory: the exchange word for word, in the file Python's mneme-llm reads too
-      mneme.observe(subject, [[user, held.said], [mneme.companionName, reply]], {
-        conversation: `dsh:${agent.session?.id ?? ''}` })
-    } catch (error) { log(`not kept: ${error?.message}`) }
+    // deep memory: the exchange word for word, in the file Python's mneme-llm reads too
+    mneme.observe(subject, [[user, held.said], [mneme.companionName, reply]], {
+      conversation: `dsh:${agent.session?.id ?? ''}` }).catch(error => log(`not kept: ${error?.message}`))
     if (!held.turn) return
     // Beside the conversation: her turn does not wait for her note.
     held.turn.learn(reply).then(note => log(note ? `lesson ${gut.report().lessons}` : 'no note'))

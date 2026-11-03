@@ -46,13 +46,13 @@ test('the shown form lets nothing said pose as another exchange', () => {
   assert.ok(!shown.includes('\n#99') && !shown.includes('\nMomo:'))
 })
 
-test('observe keeps what the person started, once, and nothing else', () => {
+test('observe keeps what the person started, once, and nothing else', async () => {
   const [m, clock] = companion()
-  const seen = m.observe('u', [['Leo', 'my exam is on Friday'], ['Momo', 'good luck']], { conversation: 'web',
+  const seen = await m.observe('u', [['Leo', 'my exam is on Friday'], ['Momo', 'good luck']], { conversation: 'web',
     at: clock.now - 60 })
   assert.deepEqual([seen.episode.conversation, seen.episode.at], ['web', clock.now - 60])
-  m.observe('u', [["Momo's own thought", 'miss them'], ['Momo', 'hey!']], { source: 'speak-up' })
-  m.observe('u', [['Leo', 'not this one']], { keep: false })
+  await m.observe('u', [["Momo's own thought", 'miss them'], ['Momo', 'hey!']], { source: 'speak-up' })
+  await m.observe('u', [['Leo', 'not this one']], { keep: false })
   assert.equal(m.episodes.count('u'), 1)
 })
 

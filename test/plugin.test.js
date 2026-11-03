@@ -66,7 +66,7 @@ test('a turn: her line before her first step, the exchange kept word for word, a
   await until(() => h.gut.net.lessons.length === 1)
   assert.equal(h.gut.net.lessons.length, 1)
   h.mneme.close()
-  const m = new Mneme(path.join(folder, 'memory.db'), 'default')
+  const m = new Mneme(path.join(folder, 'memory.db'), 'default', { embed: false })
   const [kept] = m.episodes.after('owner', 0)
   assert.deepEqual([kept.lines, kept.conversation], [[['Leo', '今天加班好累'], ['小鲸', '辛苦了，抱抱你。']], 'dsh:s1'])
   assert.equal(m.surface.first('owner').text, '今天加班好累')
