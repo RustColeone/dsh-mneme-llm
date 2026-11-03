@@ -11,8 +11,8 @@ she runs on:
 
 - **Every word, kept.** Everything you and she say is kept word for word the moment it is said, with when and where
   it was said. This is her *deep memory*; nothing is ever cut from it.
-- **The recent part in front of her.** The newest of it, the *surface*, goes in front of her as real turns of
-  conversation, so she sounds like herself from what she said a moment ago, in any chat with you.
+- **The recent part in front of her.** The newest of it, the *surface*, goes in front of her as the conversation so
+  far, so she sounds like herself from what she said a moment ago, in any chat with you.
 - **Older things fade, and come back.** Before each reply she gets a *look*: the exchanges that bear on your message.
   Old ones fade, so the older an exchange, the closer your message must be to bring it back; her search tools still
   find anything, however old.
@@ -184,8 +184,9 @@ After installing it into a profile, add it to that profile's patch, `~/.dsh/prof
 Then each turn:
 
 1. **A new session** (a session in which DSH's events show she has said nothing yet) starts with what she keeps of the
-   person, as turns of their own, after DSH's system prompt: their first prompt if they turned it on, the summary of
-   what she let go, and the newest of what you said to each other, in any session.
+   person, after DSH's system prompt: their first prompt if they turned it on, as they wrote it, then the summary of
+   what she let go and the newest of what you said to each other, in any session, as text that says when and who said
+   what. It is all in the session's first step, so the session reopens as it was, after DSH restarts too.
 2. **Before her first step**, one message goes beside yours: who you are to her (and, when someone else is talking, who
    her owner is), her notes, what was said before that bears on it (her look), her mood's news, and her gut's line,
    with her word habits in it only for people at closeness 40 or more. It stays in the session until DSH compacts it.
@@ -206,11 +207,13 @@ mention of her account (`@20002 …`): once one mention has opened two group mes
 nobody has written to her from that account, it is hers, and it is left out of what she keeps and reads (her folder
 keeps it, in `self.json`). A turn that starts any other way is her speaking up on her own: her message is kept as hers,
 and no notes are taken from it. It works alongside other plugins, such as a chat channel or persona cards; it adds its
-own messages to the session, writes DSH's own system prompt in a new session first, as DSH renders it, so that her
-persona comes before what she keeps, and leaves the system prompt and the rest of the context to them.
+own messages to each turn's first step, which DSH puts after its system prompt, so her persona comes before what she
+keeps, and it leaves the system prompt and the rest of the context to them.
 
 **Commands.** Type them as messages: the plugin answers them itself, with no model call, in the language you write in
-(English or Chinese), and the answer comes back in the chat.
+(English or Chinese), and the answer comes back in the chat. The words of a command itself (`on`, `off`, `clear`,
+`deep`, `gut`) are in no language: the answer is in that of the words you give with it, or else of what you wrote
+last.
 
 | | |
 |---|---|

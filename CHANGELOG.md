@@ -35,8 +35,10 @@ whichever writes it.
   (`--subject`) or naming one in each call.
 - **The plugin:**
   - A new session (DSH's events show she has said nothing in it yet) starts with DSH's system prompt, then what she
-    keeps of the person, as turns of their own: their first prompt if they turned it on, the summary of what she let
-    go, and their newest exchanges from any session. Her persona and the first prompt are what she reads first.
+    keeps of the person: their first prompt if they turned it on, as they wrote it, then the summary of what she let
+    go and their newest exchanges from any session, as text that says when and who said what. Her persona and the
+    first prompt are what she reads first. All of it is in the session's first step, so DSH keeps it with the session,
+    and the session reopens as it was, after DSH restarts too.
   - Before her first step, one message beside the person's: who they are to her (and, when they are not you, who her
     owner is, by name), her notes, her look at what was said before, her mood's news, and her gut's line. Her word
     habits are in that line only with people at closeness 40 or more, so a way of talking she has with you stays
@@ -49,8 +51,9 @@ whichever writes it.
   - In a group, the mention of her own account a message opens with (`@20002 …`) is left out of what she keeps and
     reads. She knows her account once the same mention has opened two group messages and nobody writes from it.
   - `$first` and `$new` (with `deep` and `gut`), typed as messages and answered by the plugin, every one of them with
-    no model call, in the language the person writes in (English or Chinese); `/mneme-first` and `/mneme-new` in
-    DSH's own command list.
+    no model call, in the language the person writes in (English or Chinese): that of the words they give with the
+    command, else of what they wrote last (a command's own words, such as `on` or `deep`, are in no language);
+    `/mneme-first` and `/mneme-new` in DSH's own command list.
   - Her tools `mneme_search` and `mneme_read`, over everything said with the person she is talking with.
   - Her folder is under DSH's home (`$DSH_HOME`, or `~/.dsh`).
 - **Changed:** the package's starter for the gut, `starter.json.gz`, holds feelings only: a companion's word habits
