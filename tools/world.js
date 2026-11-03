@@ -30,8 +30,10 @@ export class World {
   space (name) {
     if (!this.spaces.has(name)) {
       const embed = this.given.embedded.includes(name) ? new Embeddings(models.toy, 'toy:1') : false
-      this.spaces.set(name, new Mneme(this.file, name, { config: this.given.config, complete: models.model(this.asked),
-        embed, clock: () => this.state.t }))
+      const config = this.given.configs[name] ?? this.given.config
+      const judge = this.given.judged.includes(name) ? new models.Judge() : null
+      this.spaces.set(name, new Mneme(this.file, name, { config, complete: models.model(this.asked), judge, embed,
+        clock: () => this.state.t }))
     }
     return this.spaces.get(name)
   }

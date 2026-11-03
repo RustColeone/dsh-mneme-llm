@@ -2,7 +2,10 @@
 mneme-llm in place of a real model, so both sides are asked the same and answer the same, with no network.
 
     model(asked)   complete(system, user): each call is added to `asked`, and answered by what the system prompt asks
-                   for (a judge's verdict, notes, a profile card, a summary, glosses, a translation)
+                   for (a judge's verdict, notes, a profile card, a summary, glosses, a translation); a request with
+                   FAIL in it fails
+    Judge()        a host's own judge, which leaves some questions out
+    toy(texts)     an embedding, as below; it fails for a text with EMBEDFAIL in it
     toy(texts)     an embedding: a direction for each of a few topics, in English or Chinese, one for each pair of the
                    floor's bundled set, and a little of each text
 """
@@ -12,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from mneme_llm.decide import Answer
 from mneme_llm.meaning.calibrate import TOPICS
 
 KINDS = ["fact", "preference", "episode", "plan", "reflection", "thing"]
@@ -105,13 +109,38 @@ def reply(system: str, user: str) -> str:
 def model(asked: list):
     async def complete(system: str, user: str) -> str:
         asked.append([system, user])
+        if "FAIL" in user:
+            raise RuntimeError("model down")
         return reply(system, user)
     return complete
+
+
+class Judge:
+    """A host's own judge: a verdict by rules, and some questions left out."""
+    name = "rules"
+
+    async def adecide(self, input: str, questions) -> dict:
+        d = digest(input)
+        found = {}
+        for question in questions:
+            if (d + len(question.name)) % 4 == 0:
+                continue
+            if question.type == "predicate":
+                p = d % 101 / 100
+                found[question.name] = Answer(question.name, {"true": p, "false": 1 - p}, max(p, 1 - p), "rules")
+                continue
+            labels = question.labels
+            pick = labels[d % len(labels)]
+            found[question.name] = Answer(question.name, {label: 0.7 if label == pick else 0.3 / (len(labels) - 1)
+                                                          for label in labels}, 0.7, "rules", "rule" if d % 2 else "")
+        return found
 
 
 def toy(texts):
     vectors = []
     for text in texts:
+        if "EMBEDFAIL" in text:
+            raise RuntimeError("embedder down")
         vector = [0.0] * (12 + len(TOPICS))
         vector[11] = 0.2
         low = text.lower()

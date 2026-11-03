@@ -2,11 +2,18 @@
 // mneme-llm in place of a real model, so both sides are asked the same and answer the same, with no network.
 //
 //     model(asked)   complete(system, user): each call is added to `asked`, and answered by what the system prompt
-//                    asks for (a judge's verdict, notes, a profile card, a summary, glosses, a translation)
+//                    asks for (a judge's verdict, notes, a profile card, a summary, glosses, a translation); a request
+//                    with FAIL in it fails
+//     Judge          a host's own judge, which leaves some questions out
+//     toy(texts)     an embedding, as below; it fails for a text with EMBEDFAIL in it
 //     toy(texts)     an embedding: a direction for each of a few topics, in English or Chinese, one for each pair of
 //                    the floor's bundled set, and a little of each text
 import crypto from 'node:crypto'
+import { Answer } from '../lib/decide.js'
 import { TOPICS } from '../lib/meaning/calibrate.js'
+
+/** An error as Python's side names it. */
+const failure = message => Object.assign(new Error(message), { name: 'RuntimeError' })
 
 const KINDS = ['fact', 'preference', 'episode', 'plan', 'reflection', 'thing']
 const CONCEPTS = [['cat', 0], ['猫', 0], ['年糕', 0], ['mochi', 0], ['exam', 1], ['考试', 1], ['math', 1], ['数学', 1],
@@ -84,11 +91,33 @@ export function reply (system, user) {
 
 export const model = asked => async (system, user) => {
   asked.push([system, user])
+  if (user.includes('FAIL')) throw failure('model down')
   return reply(system, user)
+}
+
+/** A host's own judge: a verdict by rules, and some questions left out. */
+export class Judge {
+  async decide (input, questions) {
+    const d = digest(input), found = {}
+    for (const question of questions) {
+      if ((d + question.name.length) % 4 === 0) continue
+      if (question.type === 'predicate') {
+        const p = d % 101 / 100
+        found[question.name] = new Answer(question.name, new Map([['true', p], ['false', 1 - p]]), Math.max(p, 1 - p),
+          'rules')
+        continue
+      }
+      const labels = question.labels, pick = labels[d % labels.length]
+      found[question.name] = new Answer(question.name, new Map(labels.map(label => [label, label === pick ? 0.7
+        : 0.3 / (labels.length - 1)])), 0.7, 'rules', d % 2 ? 'rule' : '')
+    }
+    return found
+  }
 }
 
 export function toy (texts) {
   return texts.map(text => {
+    if (text.includes('EMBEDFAIL')) throw failure('embedder down')
     const vector = new Array(12 + TOPICS.length).fill(0.0)
     vector[11] = 0.2
     const low = text.toLowerCase()

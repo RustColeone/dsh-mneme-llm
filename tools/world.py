@@ -50,7 +50,9 @@ class World:
     def space(self, name: str) -> Mneme:
         if name not in self.spaces:
             embed = Embeddings(models.toy, name="toy:1") if name in self.given["embedded"] else False
-            self.spaces[name] = Mneme(self.path, name, config=self.given["config"], complete=models.model(self.asked),
+            config = self.given["configs"].get(name, self.given["config"])
+            judge = models.Judge() if name in self.given["judged"] else None
+            self.spaces[name] = Mneme(self.path, name, config=config, complete=models.model(self.asked), judge=judge,
                                       embed=embed, clock=lambda: self.state["t"])
         return self.spaces[name]
 
