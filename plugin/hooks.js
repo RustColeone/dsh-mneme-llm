@@ -1,17 +1,18 @@
 // The plugin's hooks, apart from DeepSeek Harness itself so they can be tested without it: index.js hands in DSH's
-// message constructors, its prompt renderer and its home folder.
+// message constructor, how to tell its loop's model calls, and its home folder.
 //
 // Each turn starts with a message. One you type in DSH is yours; one a chat channel brings carries who sent it, and
 // each sender is a person to her (some of those accounts may be yours); a turn anything else starts is her speaking up
-// on her own. A new session's first message (DSH's events say she has said nothing in it yet): what she keeps of that
-// person goes in front of it as turns of their own (their first prompt if they turned it on, what stands for what she
-// let go, and the newest of what they said to each other, in any session), after DSH's system prompt. DSH keeps and
-// compacts the session from then on, as do any other plugins that work on it. Before her first step, one block goes
-// beside the message: who they are to her (and, when they are not you, who you are), her notes, what was said before
-// that bears on it (her look, with her tools to search the rest), her mood's news, and her gut's line, which stays in
-// the session log until DSH compacts it. When the turn ends, the exchange is kept word for word, her model judges her
-// mood and writes what is worth remembering, the surface lets go of what is old, and she writes a note that teaches her
-// gut. All of it runs on the model you use in DSH.
+// on her own. Before her first step, messages of her own go in front of the message, in the step, which DSH writes to
+// the session log after its system prompt, so the session reopens as it was. In a new session's first step (DSH's
+// events say she has said nothing in it yet), what she keeps of that person comes first: their first prompt if they
+// turned it on, as they wrote it, then what stands for what she let go and the newest of what they said to each other,
+// in any session, as text that says when and who said what. DSH keeps and compacts the session from then on, as do
+// any other plugins that work on it. Then, in every turn, one block: who they are to her (and, when they are not you,
+// who you are), her notes, what was said before that bears on it (her look, with her tools to search the rest), her
+// mood's news, and her gut's line, which stays in the session log until DSH compacts it. When the turn ends, the
+// exchange is kept word for word, her model judges her mood and writes what is worth remembering, the surface lets go
+// of what is old, and she writes a note that teaches her gut. All of it runs on the model you use in DSH.
 //
 // `$first` and `$new` are commands typed as messages, answered in the session in the language the person writes in,
 // with no model call; `/mneme-first` and `/mneme-new` are the same in DSH's own command list.
@@ -59,6 +60,8 @@ const SAYS = {
     'new.gut': '{count} exchanges gone for good, with every note, and {lessons} lessons of her gut: she is as she ' +
       'was born.',
     'owner.line': 'Your owner is {owner}.',
+    'surface.said': 'What you and {who} said to each other lately, word for word, the oldest first, each with when ' +
+      'it was said:',
   },
   zh: {
     'first.shown': '{text}\n（{how}；{when}）',
@@ -78,6 +81,7 @@ const SAYS = {
     'new.deep': '{count} 段对话连同所有笔记，永久删除了。',
     'new.gut': '{count} 段对话连同所有笔记永久删除了，她的直觉学到的 {lessons} 条也一起删了：她回到了刚出生的样子。',
     'owner.line': '你的主人是{owner}。',
+    'surface.said': '你和{who}最近说过的话，逐字保留，从最早的说起，每段都注明了说的时间：',
   },
 }
 /** The plugin's sentences in a language her gut names (Cantonese reads Chinese; any other, English). */
@@ -89,6 +93,8 @@ const textOf = message => (message?.content || []).filter(block => block.type ==
 /** Whether what a person said is one of the commands (a mention it opens with aside). */
 const commanded = said => COMMAND.test(said.replace(MENTIONS, '').trim())
 
+const KEPT = new Set(['first', 'surface']) // what she keeps of a person, in front of a new session
+
 /** Whether a session has begun for her: she has answered in it (a command's answer is not hers), or what she keeps
  * was put in front of it. */
 const SESSION = {
@@ -99,9 +105,7 @@ const SESSION = {
   apply: (state, event) => {
     if (state.began) return state
     if (event.type === 'user/message') {
-      if (event.data.source?.kind === OWN && event.data.source?.form === 'surface') {
-        return { began: true, command: false }
-      }
+      if (event.data.source?.kind === OWN && KEPT.has(event.data.source?.form)) return { began: true, command: false }
       const sender = senderOf(event.data)
       return sender ? { began: false, command: commanded(sender.said) } : state
     }
@@ -155,8 +159,7 @@ export function open (config = {}, home) {
   return { mneme, gut, folder }
 }
 
-export function hooks (ctx, config = {}, { createUserMessage, createAssistantMessage, createSystemMessage = null,
-  renderPrompt = null, isAgentLoopRequest = null, home }) {
+export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest = null, home }) {
   const { mneme, gut, folder } = open(config, home)
   const subject = String(config.subject || 'owner')
   const you = { subject, name: String(config.user || 'user') }
@@ -355,36 +358,26 @@ export function hooks (ctx, config = {}, { createUserMessage, createAssistantMes
     return replying(answer(held))
   })
 
-  /** DSH's system prompt, written as DSH is about to write it, so that it comes first. DSH writes it at the start of
-   * the step, after whatever is in the session by then, and leaves it where it is when the same words are there. */
-  async function promptFirst (agent, { turn, step, signal }) {
-    if (!ctx.systemPrompt || !renderPrompt || !createSystemMessage) return
-    if (agent.session.deriveMessages().some(message => message.role === 'system')) return
-    const assembly = await ctx.systemPrompt.assemble({ agent, scope: agent, ...(signal ? { signal } : {}) })
-    agent.session.append('system/message', { turn, step, message: createSystemMessage(renderPrompt(assembly)) },
-      { surfaceOp: 'append' })
-  }
+  const ownMessage = (text, form, summary) => createUserMessage({ content: [{ type: 'text', text }],
+    source: { kind: OWN, form, summary } })
 
-  /** What she keeps of a person, in front of a new session's first message as turns of their own, after DSH's system
-   * prompt: it may not start with hers. */
-  async function surfaced (agent, person, at) {
-    const model = modelOf(agent, config)
-    const turns = mneme.surface.read(person.subject, { userName: person.name, here: conversation(agent) }).messages
-    const start = turns.findIndex(item => item.role === 'user')
-    if (!model || start < 0) return
-    try {
-      await promptFirst(agent, at)
-    } catch (error) { log(`no system prompt in front: ${error?.message}`) }
-    for (const item of turns.slice(start)) {
-      const content = [{ type: 'text', text: item.content }]
-      if (item.role === 'assistant') {
-        agent.session.append('assistant/message', { turn: at.turn, step: at.step, stream: [],
-          message: createAssistantMessage({ content, source: model }) }, { surfaceOp: 'append' })
-      } else {
-        agent.session.append('user/message', createUserMessage({ content, source: { kind: OWN, form: 'surface' } }),
-          { surfaceOp: 'append' })
-      }
-    }
+  /** What she keeps of a person, in front of a new session's first message: their first prompt if they turned it on,
+   * as they wrote it; then, in one message, what stands for what she let go and the newest of what they said to each
+   * other (the surface), each exchange as her look shows one, with when it was said and who said what. They are
+   * messages of the step, as DSH's session log keeps a step's messages, after DSH's system prompt. */
+  function keptOf (person) {
+    const surface = mneme.surface, subject = mneme.person(person.subject)
+    const view = surface.read(subject, { userName: person.name })
+    const first = surface.first(subject), sent = first?.send ? 1 : 0
+    const row = surface._row(subject) // (where the surface starts, and what stands for what she let go)
+    const exchanges = mneme.episodes.after(subject, row?.start_id ?? 0, view.top) // (those `read` took)
+      .sort((one, other) => one.at - other.at || one.id - other.id)
+      .map(episode => mneme.episodes.shown(episode, { whole: true }))
+    const words = new Words(code(surface.words), SAYS)
+    const text = [...view.messages.slice(sent, sent + (row?.summary ? 1 : 0)).map(item => item.content),
+      ...exchanges.length ? [say(words, 'surface.said', { who: person.name }), ...exchanges] : []].join('\n\n')
+    return [...sent ? [ownMessage(first.text, 'first', 'Their first prompt, which she reads first')] : [],
+      ...text ? [ownMessage(text, 'surface', 'What she keeps of what was said lately')] : []]
   }
 
   /** Beside a message from someone else, who her owner is, in the line that says who this person is to her. */
@@ -468,10 +461,10 @@ export function hooks (ctx, config = {}, { createUserMessage, createAssistantMes
 
   const waiting = new WeakMap() // agent → her turn, from its first step to its end
 
-  // One message of her memory's own beside the one that opened the turn. DSH builds every request from its session
-  // log, so it has to be in there; as context it would make DSH send its whole runtime context again each turn, since
-  // it changes each turn.
-  ctx.on('agent/pre-step', async ({ agent, messages, turn, step, signal }, next) => {
+  // Her memory's own messages in front of the one that opened the turn. DSH builds every request from its session log,
+  // so they have to be in there; as context they would make DSH send its whole runtime context again each turn, since
+  // they change each turn. As the step's messages, DSH writes them in the step, after its system prompt.
+  ctx.on('agent/pre-step', async ({ agent, messages, step }, next) => {
     const decision = await next()
     const opened = messages?.filter(item => item.role === 'user' && item.source?.kind !== 'runtime-context').at(-1)
     if (decision.kind !== 'enter' || step !== 1 || !opened || agent.session?.header?.parentSession !== undefined) {
@@ -489,13 +482,17 @@ export function hooks (ctx, config = {}, { createUserMessage, createAssistantMes
     held = withTurn(agent, held)
     waiting.set(agent, held)
     boxOf(agent).newTurn()
-    if (fresh && !held.group) await surfaced(agent, held.person, { turn, step, signal })
+    let front = []
+    if (fresh && !held.group) {
+      try {
+        front = keptOf(held.person)
+      } catch (error) { log(`nothing kept in front: ${error?.message}`) }
+    }
     const block = await beside(agent, held)
-    if (!block) return decision
-    const notice = createUserMessage({ content: [{ type: 'text', text: block }], source: { kind: OWN,
-      form: 'notice', summary: 'What comes to her mind, and how she feels' } })
+    if (block) front.push(ownMessage(block, 'notice', 'What comes to her mind, and how she feels'))
+    if (!front.length) return decision
     const at = decision.messages.findIndex(item => item.id === opened.id)
-    return { ...decision, messages: decision.messages.toSpliced(at < 0 ? 0 : at, 0, notice) }
+    return { ...decision, messages: decision.messages.toSpliced(at < 0 ? 0 : at, 0, ...front) }
   })
 
   ctx.on('agent/turn-stopping', ({ agent }) => {
