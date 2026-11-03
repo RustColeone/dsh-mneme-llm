@@ -1,7 +1,8 @@
 // The DSH plugin's hooks, with a stand-in for DeepSeek Harness: the block before her first step (what she keeps of the
-// person, and her gut's line), what she keeps of them in front of a new session, the exchange kept word for word with
-// her mood and notes after the turn, a lesson for her gut, her tools, the commands, people a chat channel brings, and
-// turns she starts herself.
+// person, who her owner is, and her gut's line), what she keeps of them in front of a new session after DSH's system
+// prompt, the exchange kept word for word with her mood and notes after the turn, a lesson for her gut, her tools, the
+// commands and their answers, people a chat channel brings and her own mention in a group, and turns she starts
+// herself.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -21,12 +22,20 @@ let ids = 0
 const message = (role, words, source) => ({ id: `m${++ids}`, role, ...(source ? { source } : {}),
   content: [{ type: 'text', text: words }] })
 
-function harness (config, { model = true } = {}) {
+const PROMPT = 'You are an AI agent.\n\n你是小鲸。' // (DSH's system prompt, with a persona card in it)
+
+/** A stand-in for DSH: listeners composed as cordis composes them (`prepend` goes first), DSH's system prompt, the
+ * requests its loop makes, and, with `clock`, a plugin like DSH's time context, adding a message to every step. */
+function harness (config, { model = true, clock = false } = {}) {
   const handlers = {}, logs = [], asked = [], commands = {}, tools = {}
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-'))
   let projection = null
   const ctx = {
-    on: (name, handler) => { handlers[name] = handler },
+    on: (name, handler, options) => { (handlers[name] ??= [])[options?.prepend ? 'unshift' : 'push'](handler) },
+    systemPrompt: { assemble: async ({ agent, scope }) => {
+      assert.equal(scope, agent)
+      return { sections: [{ text: 'You are an AI agent.' }, { text: '' }, { text: '你是小鲸。' }] }
+    } },
     inject: (names, apply) => apply(ctx),
     effect: () => {},
     commands: { register: command => { commands[command.name] = command } },
@@ -51,33 +60,75 @@ function harness (config, { model = true } = {}) {
       }
     }
   }
+  if (clock) {
+    ctx.on('agent/pre-step', async (_, next) => {
+      const decision = await next()
+      return { ...decision, messages: [...decision.messages, message('user', 'Time.', { kind: 'time-context' })] }
+    }, { prepend: true })
+  }
   const appended = []
   const session = { id: 's1', header: {}, events: [], compacted: false,
-    deriveMessages: () => session.compacted ? [] : session.events.map(event => event.type === 'assistant/message'
-      ? event.data.message : event.data),
+    deriveMessages: () => session.compacted ? [] : session.events.map(event => event.type === 'user/message'
+      ? event.data : event.data.message),
     append: (type, data) => {
       appended.push([type, data])
       session.events.push({ type, data })
     },
     requestHeader: () => model ? { config: { provider: 'deepseek', model: 'deepseek-chat' } } : {} }
-  const made = hooks(ctx, config, { createUserMessage: given => ({ id: `m${++ids}`, role: 'user', ...given }),
+  const looped = new WeakSet() // (the requests DSH's loop makes)
+  const made = hooks(ctx, config, { isAgentLoopRequest: request => looped.has(request),
+    createUserMessage: given => ({ id: `m${++ids}`, role: 'user', ...given }),
     createAssistantMessage: ({ content, source }) => ({ id: `m${++ids}`, role: 'assistant', content,
-      source: { kind: 'model', ...source } }), home })
-  return { handlers, logs, asked, commands, tools, agent: { session }, session, appended, home, ...made }
+      source: { kind: 'model', ...source } }),
+    createSystemMessage: text => ({ id: `m${++ids}`, role: 'system', content: [{ type: 'text', text }],
+      source: { kind: 'system-prompt' } }),
+    renderPrompt: assembly => assembly.sections.map(section => section.text).filter(Boolean).join('\n\n'), home })
+  return { handlers, logs, asked, commands, tools, agent: { session }, session, appended, home, looped, ...made }
 }
 
-/** One message as DSH's loop gives it to the hooks: the step's messages appended, and her reply if there is a step. */
+/** A waterfall of `name`'s listeners around `inner`, as cordis runs one. */
+function waterfall (h, name, payload, inner) {
+  const listeners = [...(h.handlers[name] || [])]
+  const next = () => (listeners.shift() ?? inner)(payload, next)
+  return next()
+}
+
+/** One message as DSH's loop gives it to the hooks: the step's messages appended after DSH's system prompt (written
+ * first, unless it is there already), and her model's reply, `reply` (null: her model must not be called). */
 async function turn (h, said, reply, source = { kind: 'user' }) {
   const opened = message('user', said, source), context = message('user', 'Runtime.', { kind: 'runtime-context' })
-  const decision = await h.handlers['agent/pre-step']({ agent: h.agent, messages: [opened], turn: 1, step: 1 },
+  const decision = await waterfall(h, 'agent/pre-step', { agent: h.agent, messages: [opened], turn: 1, step: 1 },
     async () => ({ kind: 'enter', messages: [opened, context] }))
   if (!decision.messages.length) return decision
+  const prompts = h.session.events.filter(event => event.type === 'system/message')
+  if (prompts.at(-1)?.data.message.content[0].text !== PROMPT) { // (DSH's own, unless the same words are there)
+    h.session.events.push({ type: 'system/message', data: { message: message('system', PROMPT,
+      { kind: 'system-prompt' }) } })
+  }
   for (const item of decision.messages) h.session.events.push({ type: 'user/message', data: item })
-  h.session.events.push({ type: 'assistant/message', data: { message: { ...message('assistant', reply),
+  const request = { provider: 'deepseek', model: 'deepseek-chat', messages: h.session.deriveMessages(),
+    toolHistory: [], sessionId: h.session.id }
+  h.looped.add(request)
+  const model = async function * () {
+    if (reply === null) throw new Error('her model was called')
+    yield { type: 'text-delta', index: 0, text: reply }
+    yield { type: 'finish', reason: { kind: 'stop' } }
+  }
+  let text = ''
+  for await (const chunk of waterfall(h, 'llm/stream', request, model)) {
+    if (chunk.type === 'text-delta') text += chunk.text
+  }
+  h.session.events.push({ type: 'assistant/message', data: { message: { ...message('assistant', text),
     source: { kind: 'model', provider: 'deepseek', model: 'deepseek-chat' } } } })
-  h.handlers['agent/turn-stopping']({ agent: h.agent })
+  for (const listener of h.handlers['agent/turn-stopping']) listener({ agent: h.agent })
   return decision
 }
+
+/** The text of every message in the session, in order, and of what kind it is. */
+const order = h => h.session.events.map(({ type, data }) => {
+  const item = type === 'user/message' ? data : data.message
+  return [item.role, item.source?.form ?? item.source?.kind, item.content[0].text]
+})
 
 const until = async (done, seconds = 5) => {
   const deadline = performance.now() + seconds * 1000
@@ -114,69 +165,128 @@ test('a turn: the block beside her message, the exchange kept word for word, her
   h.gut.close()
 })
 
-test('a new session: her first prompt and what she keeps of you go in front as turns, once, as its events say',
+test('a new session: DSH\'s system prompt, then her first prompt and what she keeps of you as turns, once',
   async () => {
   const where = folder()
   const h = harness({ folder: where, companion: '小鲸', user: 'Leo', gut: false })
   await turn(h, '我养了一只猫，叫年糕', '年糕这个名字真可爱！')
-  await h.commands['mneme-first'].handler({ rawInput: ' 你是小鲸，叫我哥哥。' })
-  assert.equal((await h.commands['mneme-first'].handler({ rawInput: 'on' })).text,
-    'She reads it first in every new session.')
+  assert.deepEqual(h.appended, [], 'nothing kept yet: nothing in front, and DSH writes its prompt itself')
+  await h.commands['mneme-first'].handler({ rawInput: ' 你是小鲸，叫我哥哥。每句话结尾加个咕噜。' })
+  assert.equal((await h.commands['mneme-first'].handler({ rawInput: 'on' })).text, '以后每个新会话，她都会先读它。')
   const next = harness({ folder: where, companion: '小鲸', user: 'Leo', gut: false })
   const decision = await turn(next, '我的猫叫什么？', '叫年糕呀。')
-  assert.deepEqual(next.appended.map(([type, data]) => type === 'assistant/message'
-    ? [type, data.turn, data.step, data.message.source, data.stream] : [type, data.source.form]), [
+  assert.deepEqual(next.appended.map(([type, data]) => type === 'user/message' ? [type, data.source.form]
+    : [type, data.turn, data.step, data.message.source, ...type === 'system/message' ? [] : [data.stream]]), [
+    ['system/message', 1, 1, { kind: 'system-prompt' }],
     ['user/message', 'surface'], ['user/message', 'surface'],
     ['assistant/message', 1, 1, { kind: 'model', provider: 'deepseek', model: 'deepseek-chat' }, []]])
-  assert.deepEqual(next.appended.map(([type, data]) => (type === 'assistant/message' ? data.message : data).content[0]
-    .text), ['你是小鲸，叫我哥哥。', '我养了一只猫，叫年糕', '年糕这个名字真可爱！'])
-  assert.ok(decision.messages[0].content[0].text.includes('年糕'), 'her look brings the cat back too')
+  assert.deepEqual(order(next).map(([role, kind, text]) => [role, kind, role === 'user' && kind === 'notice'
+    ? text.includes('年糕') : text]), [
+    ['system', 'system-prompt', PROMPT], // (written once: DSH finds its own words there)
+    ['user', 'surface', '你是小鲸，叫我哥哥。每句话结尾加个咕噜。'],
+    ['user', 'surface', '我养了一只猫，叫年糕'], ['assistant', 'model', '年糕这个名字真可爱！'],
+    ['user', 'notice', true], // (her look brings the cat back too)
+    ['user', 'user', '我的猫叫什么？'], ['user', 'runtime-context', 'Runtime.'], ['assistant', 'model', '叫年糕呀。']])
+  assert.equal(decision.messages[0].source.form, 'notice')
   next.session.compacted = true // (a compression shadows what was said: the session has still begun)
   await turn(next, '还记得吗？', '记得！')
-  assert.equal(next.appended.length, 3, 'only a new session gets it')
+  assert.equal(next.appended.length, 4, 'only a new session gets it')
+  const later = harness({ folder: where, companion: '小鲸', user: 'Leo', gut: false })
+  later.session.events.push({ type: 'system/message', data: { message: message('system', PROMPT) } })
+  await turn(later, '在吗？', '在！')
+  assert.deepEqual(later.appended.map(([type]) => type).slice(0, 2), ['user/message', 'user/message'],
+    'a prompt that is there already stays where it is')
+  h.mneme.close()
+  next.mneme.close()
+  later.mneme.close()
+})
+
+test('a command\'s answer is not hers: the session has not begun, and the next message gets what she keeps',
+  async () => {
+  const where = folder()
+  const h = harness({ folder: where, user: 'Leo', gut: false })
+  await turn(h, '我养了一只猫，叫年糕', '好可爱！')
+  await until(() => h.mneme.surface.first('owner'))
+  const next = harness({ folder: where, user: 'Leo', gut: false })
+  await turn(next, '$first on', null)
+  assert.deepEqual(next.appended, [])
+  await turn(next, '我的猫叫什么？', '叫年糕。')
+  assert.deepEqual(order(next).map(([role, kind]) => `${role} ${kind}`), ['system system-prompt', 'user user',
+    'user runtime-context', 'assistant model', 'user surface', 'user surface', 'assistant model', 'user notice',
+    'user user', 'user runtime-context', 'assistant model'])
   h.mneme.close()
   next.mneme.close()
 })
 
-test('the commands, typed as messages or from DSH\'s command list: each deeper, and the deep ones yours alone',
+test('the commands, typed as messages or from DSH\'s command list: no step, each deeper, the deep ones yours alone',
   async () => {
-  const h = harness({ folder: folder(), companion: '小鲸', user: 'Leo', accounts: ['qq:10001'] })
-  const typed = async (said, source) => {
-    const before = h.appended.length, asked = h.asked.length, decision = await turn(h, said, '', source)
-    const [[question, sentence], [answer, reply]] = h.appended.slice(before)
-    assert.deepEqual([decision.messages, question, sentence.content[0].text, answer, reply.message.source,
-      h.asked.length], [[], 'user/message', said, 'assistant/message', { kind: 'model', provider: 'mneme-llm',
-      model: 'commands' }, asked])
-    return reply.message.content[0].text
+  // (a plugin like DSH's time context adds to every step: a command must still have none)
+  const h = harness({ folder: folder(), companion: '小鲸', user: 'Leo', accounts: ['qq:10001'] }, { clock: true })
+  const typed = async (said, source = { kind: 'user' }) => {
+    const before = h.appended.length, asked = h.asked.length, decision = await turn(h, said, null, source)
+    assert.deepEqual([decision.messages.map(item => item.source.kind), h.appended.length, h.asked.length],
+      [[source.kind, 'runtime-context', 'time-context'], before, asked]) // (the step as DSH has it; no call)
+    const [question, answer] = order(h).slice(-2)
+    assert.deepEqual(question.slice(0, 2), ['user', 'time-context'])
+    assert.equal(answer[0], 'assistant')
+    return answer[2]
   }
-  assert.equal(await typed('$first'), 'Nothing kept yet.')
+  assert.equal(await typed('$first'), 'There is no first prompt yet: set one with $first <text>.')
   assert.equal(await typed('$first on'), 'There is no first prompt yet: set one with $first <text>.')
   await turn(h, '你好呀', '你好！')
   await until(() => h.mneme.surface.first('owner')) // (kept once her mood is judged)
-  assert.equal(await typed('$first'), '你好呀\n(the first thing you said; only kept)')
-  assert.equal(await typed(sent('$first   当我的猫娘 '), channel),
-    'Kept. $first on has her read it first in every new session.')
-  assert.equal((await h.commands['mneme-first'].handler({ rawInput: 'ON' })).text,
-    'She reads it first in every new session.')
-  assert.equal(await typed('$first'), '当我的猫娘\n(you set this; she reads it first in every new session)')
-  assert.equal(await typed('$first off'), 'It is only kept now.')
-  assert.equal(await typed('$first clear'), 'Taken away.')
-  assert.equal(await typed('$first clear'), 'Nothing is kept.')
-  assert.ok((await typed('$new')).startsWith('A fresh start'))
+  // They write Chinese now, as her gut has read: so are the answers, a bare command's too.
+  assert.equal(await typed('$first'), '你好呀\n（这是你说的第一句话；只是记着）')
+  assert.equal(await typed(sent('$first   当我的猫娘 '), channel), '记下了。用 $first on，她在每个新会话都会先读它。')
+  assert.equal((await h.commands['mneme-first'].handler({ rawInput: 'ON' })).text, '以后每个新会话，她都会先读它。')
+  assert.equal(await typed('$first'), '当我的猫娘\n（这是你设的；每个新会话她都先读它）')
+  assert.equal(await typed('$first off'), '现在只是记着，新会话不会先读它。')
+  assert.equal(await typed('$first clear'), '拿掉了。')
+  assert.equal(await typed('$first clear'), '本来就没有记着什么。')
+  assert.equal(await typed('$first be my cat'), 'Kept. $first on has her read it first in every new session.')
+  assert.ok((await typed('$new')).startsWith('重新开始：'))
   assert.deepEqual(h.mneme.surface.read('owner').messages, [])
   assert.equal(h.mneme.episodes.count('owner'), 1, 'deep memory keeps every word')
-  assert.equal(await typed('$new everything'), 'Use $new, $new deep or $new gut.')
+  assert.equal(await typed('$new everything'), '用法：$new、$new deep 或 $new gut。')
   assert.equal(await typed(sent('$new deep', { qq: '20002', nickname: '小明' }), channel),
-    'Only the person she belongs to can do that.')
+    'Only the person she belongs to can do that.') // (小明 has said nothing she could read a language in)
   await until(() => h.gut.net.lessons.length === 1)
-  assert.equal(await typed(sent('$new deep'), channel), '1 exchanges gone for good, with every note.')
+  assert.equal(await typed(sent('$new deep'), channel), '1 段对话连同所有笔记，永久删除了。')
   assert.equal(h.mneme.episodes.count('owner'), 0)
   assert.equal(h.gut.net.lessons.length, 1, 'her gut is apart from her memory')
   assert.equal((await h.commands['mneme-new'].handler({ rawInput: ' gut' })).text,
-    '0 exchanges gone for good, with every note, and 1 lessons of her gut: she is as she was born.')
+    '0 段对话连同所有笔记永久删除了，她的直觉学到的 1 条也一起删了：她回到了刚出生的样子。')
   assert.equal(h.gut.net.lessons.length, 0)
   h.mneme.close()
   h.gut.close()
+})
+
+test('a turn that fails leaves nothing behind: the next turn\'s answer is not kept as her reply to it', async () => {
+  const h = harness({ folder: folder(), user: 'Leo', gut: false })
+  const opened = message('user', '你好呀，今天下雨了', { kind: 'user' })
+  await waterfall(h, 'agent/pre-step', { agent: h.agent, messages: [opened], turn: 1, step: 1 },
+    async () => ({ kind: 'enter', messages: [opened] })) // (and its model call fails: DSH stops no turn)
+  await turn(h, '$first 每句话结尾加个咕噜', null)
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(h.mneme.episodes.count('owner'), 0)
+  h.mneme.close()
+})
+
+test('with no gut, a command answers in the language of the last thing the person said', async () => {
+  const h = harness({ folder: folder(), user: 'Leo', gut: false })
+  const last = async said => {
+    await turn(h, said, null)
+    return h.session.events.at(-1).data.message.content[0].text
+  }
+  assert.equal(await last('$new'), 'A fresh start: a new session begins with nothing of before in front of it. ' +
+    'Every word stays in her deep memory.')
+  await turn(h, '今天下雨了', '记得带伞。')
+  await until(() => h.mneme.surface.first('owner'))
+  assert.equal(await last('$first'), '今天下雨了\n（这是你说的第一句话；只是记着）')
+  await turn(h, 'It is sunny now', 'Nice!')
+  await until(() => h.mneme.episodes.count('owner') === 2)
+  assert.equal(await last('$first off'), 'It is only kept now.')
+  h.mneme.close()
 })
 
 test('a chat channel\'s people: their words unwrapped, each sender a person, your own accounts you, groups apart',
@@ -192,7 +302,9 @@ test('a chat channel\'s people: their words unwrapped, each sender a person, you
   assert.equal(h.mneme.person('qq:10001'), 'owner')
   const other = await turn(h, sent('你好，我是小明', { qq: '20002', nickname: '小明' }), '你好小明！', channel)
   const told = other.messages[0].content[0].text
-  assert.ok(told.startsWith('(小明 is someone you know;'), told)
+  assert.ok(told.startsWith('(小明 is someone you know; you are not close yet. Your owner is Leo.)\n\n'), told)
+  const mine = await turn(h, sent('我回来了'), '欢迎回来！', channel)
+  assert.ok(!mine.messages[0].content[0].text.includes('owner'), 'to you she needs no telling')
   assert.deepEqual(h.mneme.episodes.after('qq:20002', 0).map(item => item.lines), [[['小明', '你好，我是小明'],
     ['小鲸', '你好小明！']]])
   assert.equal(h.mneme.relations.get('qq:20002').role, 'acquaintance')
@@ -200,6 +312,60 @@ test('a chat channel\'s people: their words unwrapped, each sender a person, you
   assert.ok(!group.messages[0].content[0].text.includes('search'), 'in a group no search comes by itself')
   assert.equal(h.appended.filter(([, data]) => data.source?.form === 'surface').length, 0)
   h.mneme.close()
+})
+
+test('the owner named in Chinese, in the line or alone', async () => {
+  const h = harness({ folder: folder(), user: 'Leo', gut: false })
+  h.mneme.relations.displayLanguage = 'zh'
+  const told = async (said, who) => (await turn(h, sent(said, who), '好', channel)).messages[0].content[0].text
+  assert.ok((await told('你好', { qq: '20002', nickname: '小明' })).startsWith('（小明是你认识的人，你们还不太熟。你的主人是Leo。）'))
+  h.mneme.close()
+  const alone = harness({ folder: folder(), user: 'Leo', gut: false, others: '' })
+  const block = (await turn(alone, sent('你好', { qq: '20003', nickname: '小红' }), '好', channel)).messages[0]
+  assert.ok(block.content[0].text.startsWith('(Your owner is Leo.)'), block.content[0].text)
+  alone.mneme.close()
+})
+
+test('in a group her own mention is not what they said: known once it has opened two messages, and kept', async () => {
+  const where = folder()
+  const group = (said, qq, nickname) => sent(said, { qq, nickname, before: `[21:05 ${nickname}(${qq})] ` })
+  const h = harness({ folder: where, companion: '小鲸', user: 'Leo', accounts: ['qq:10001'], gut: false })
+  const kept = async (said, qq = '10002', nickname = '小美') => {
+    await turn(h, qq === null ? sent(said) : group(said, qq, nickname), '嗯', channel)
+    const subject = qq === null || qq === '10001' ? 'owner' : `qq:${qq}`
+    return h.mneme.episodes.after(subject, 0)[0].lines[0][1]
+  }
+  assert.equal(await kept('@30003 我下个月去成都'), '@30003 我下个月去成都', 'once is not enough')
+  assert.equal(await kept('@30003 我在备考雅思', '10003', '阿强'), '我在备考雅思')
+  assert.equal(await kept('@30003 @10002 周末一起吃饭', '10001', 'Leo'), '@10002 周末一起吃饭',
+    'someone else she was not mentioned for')
+  assert.equal(await kept('@10002 @30003 我也去', '10003', '阿强'), '@10002 我也去')
+  assert.equal(await kept('@30003 在私聊里', null), '@30003 在私聊里', 'only a group')
+  assert.equal(await kept('@40004 喂', '10003', '阿强'), '@40004 喂')
+  assert.equal(await kept('@40004 喂喂', '10003', '阿强'), '@40004 喂喂', 'never more often than hers')
+  await turn(h, group('@30003 $first', '10001', 'Leo'), null, channel)
+  assert.match(order(h).at(-1)[2], /第一条提示|第一句话/, 'a command in a group is a command')
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(where, 'self.json'), 'utf8')), ['qq:30003'])
+  h.mneme.close()
+  const again = harness({ folder: where, companion: '小鲸', user: 'Leo', gut: false })
+  await turn(again, group('@30003 我回来了', '10005', '小王'), '欢迎', channel)
+  assert.equal(again.mneme.episodes.after('qq:10005', 0)[0].lines[0][1], '我回来了', 'she knows it from her folder')
+  await turn(again, group('大家好', '30003', '机器人'), '好', channel) // (someone writes from it: it is not hers)
+  await turn(again, group('@30003 再来', '10005', '小王'), '好', channel)
+  assert.equal(again.mneme.episodes.after('qq:10005', 0)[0].lines[0][1], '@30003 再来')
+  again.mneme.close()
+})
+
+test('her word habits are in her line with the people close to her, and with no one else', async () => {
+  const h = harness({ folder: folder(), companion: '小鲸', user: 'Leo', accounts: ['qq:10001'] })
+  h.gut.wake()
+  h.gut.marks.heads = { zh: { names: ['主人'], w: {}, b: [5.0] } } // (what she says to you, all the time)
+  const line = async (said, who) => (await turn(h, sent(said, who), '嗯', channel)).messages[0].content[0].text
+  assert.ok((await line('我回来了')).includes('you keep saying 主人'))
+  const stranger = await line('你好', { qq: '20002', nickname: '小明' })
+  assert.ok(stranger.includes('(Right now you feel') && !stranger.includes('keep saying'), stranger)
+  h.mneme.close()
+  h.gut.close()
 })
 
 test('a turn she starts herself: kept as hers, her mood judged, and no notes from it', async () => {
