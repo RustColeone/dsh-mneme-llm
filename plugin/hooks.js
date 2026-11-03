@@ -281,13 +281,15 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
       input: { hint: '[deep | gut]' }, handler: ({ rawInput }) => fresh(you, rawInput.trim().toLowerCase()) }))
   })
 
-  /** The language a person writes in, for the plugin's answers: that of the words they gave with a command, else what
-   * her gut read of their last message, else that of the last thing they said to her. */
+  /** The language a person writes in, for the plugin's answers. A command's own words (`on`, `deep`) are in none; only
+   * words of the person's own are: those they gave with this command, else what they wrote last, which is a first
+   * prompt they set after the last thing they said to her, or else that thing (as her gut read it, or its letters). */
   function tongue (person, text = '') {
     if (/\p{L}/u.test(text) && !KEYWORDS.has(text.toLowerCase())) return languageOf(text)
+    const [last, at] = mneme.episodes.latest(person.subject), set = mneme.surface.first(person.subject)
+    if (set?.byCommand && set.at >= at) return languageOf(set.text)
     const read = gut?.awake ? gut.languages.get(person.subject) : undefined
     if (read) return read
-    const [last] = mneme.episodes.latest(person.subject)
     const said = last ? mneme.episodes.get(last)?.lines[0]?.[1] : ''
     return said ? languageOf(said) : 'en'
   }

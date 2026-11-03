@@ -313,6 +313,7 @@ test('the commands, typed as messages or from DSH\'s command list: no step, each
   assert.equal(await typed('$first clear'), '拿掉了。')
   assert.equal(await typed('$first clear'), '本来就没有记着什么。')
   assert.equal(await typed('$first be my cat'), 'Kept. $first on has her read it first in every new session.')
+  assert.equal(await typed('$first clear'), 'Taken away.', 'what they wrote last is English')
   assert.ok((await typed('$new')).startsWith('重新开始：'))
   assert.deepEqual(h.mneme.surface.read('owner').messages, [])
   assert.equal(h.mneme.episodes.count('owner'), 1, 'deep memory keeps every word')
@@ -355,7 +356,34 @@ test('with no gut, a command answers in the language of the last thing the perso
   await turn(h, 'It is sunny now', 'Nice!')
   await until(() => h.mneme.episodes.count('owner') === 2)
   assert.equal(await last('$first off'), 'It is only kept now.')
+  assert.equal(await last('$first 下雨要带伞'), '记下了。用 $first on，她在每个新会话都会先读它。')
+  await turn(h, 'Sunny again', 'Lovely!')
+  await until(() => h.mneme.episodes.count('owner') === 3)
+  assert.equal(await last('$first on'), 'She reads it first in every new session.', 'what they said since wins')
   h.mneme.close()
+})
+
+test('a command\'s own words (on, off, clear, deep, gut) are in no language: it answers in that of what the ' +
+  'person wrote last', async () => {
+  const where = folder()
+  const h = harness({ folder: where, user: 'Leo' }) // (her gut has read nothing of theirs yet)
+  const last = async (h, said) => {
+    await turn(h, said, null)
+    return order(h).at(-1)[2]
+  }
+  assert.equal(await last(h, '$first 你是我的大肥鱼，说话要可爱一点，每句话结尾加个“咕噜”'),
+    '记下了。用 $first on，她在每个新会话都会先读它。')
+  assert.equal(await last(h, '$first on'), '以后每个新会话，她都会先读它。')
+  assert.equal(await last(h, '$new'), '重新开始：新会话前面不再放以前的内容。说过的每句话都还在她的深层记忆里。')
+  h.mneme.close()
+  h.gut.close()
+  const later = harness({ folder: where, user: 'Leo' }) // (and once DSH has restarted)
+  assert.equal(await last(later, '$first OFF'), '现在只是记着，新会话不会先读它。')
+  assert.equal(await last(later, '$new deep'), '0 段对话连同所有笔记，永久删除了。') // (her first prompt with them)
+  assert.equal(await last(later, '$first be my cat'), 'Kept. $first on has her read it first in every new session.')
+  assert.equal(await last(later, '$first on'), 'She reads it first in every new session.')
+  later.mneme.close()
+  later.gut.close()
 })
 
 test('a chat channel\'s people: their words unwrapped, each sender a person, your own accounts you, groups apart',
