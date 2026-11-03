@@ -48,6 +48,8 @@ whichever writes it.
   - Her folder is under DSH's home (`$DSH_HOME`, or `~/.dsh`).
 - **Changed:** `observe` is async and returns a promise. With no model and no embedder, everything it keeps is kept by
   the time it returns.
+- **Fixed:** on Node 22.13 to 22.15, a write that failed left its transaction open, and every later write failed with
+  it; it is rolled back now.
 
 With the Python package, a few things come out slightly otherwise:
 
