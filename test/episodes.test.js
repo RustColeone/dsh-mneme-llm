@@ -214,9 +214,10 @@ test('after is the newest first within a budget of tokens; the tokens of the las
 
 test('read shows an exchange with its neighbours in its conversation', () => {
   const [m, clock] = companion()
-  for (const [said, where] of [['one', 'a'], ['two', 'a'], ['three', 'b'], ['four', 'a'], ['five', 'b'], ['six', 'a']]) {
+  const said = [['one', 'a'], ['two', 'a'], ['three', 'b'], ['four', 'a'], ['five', 'b'], ['six', 'a']]
+  for (const [words, where] of said) {
     clock.now += 60
-    m.episodes.keep('u', [['Leo', said]], { conversation: where })
+    m.episodes.keep('u', [['Leo', words]], { conversation: where })
   }
   assert.deepEqual(m.episodes.around('u', 4).map(item => item.id), [2, 4, 6])
   assert.deepEqual(m.episodes.around('u', 1).map(item => item.id), [1, 2])
@@ -244,8 +245,8 @@ test('a file whose terms another tokenizer made is indexed again before a search
   m.store.execute("update meta set value = '4+jieba' where key = 'terms_version'")
   m.store.execute('delete from episode_terms')
   m.store.execute("insert into episode_terms values ('t', 'u', 'stale', 1)")
-  m.store.execute("insert into memories (space, subject, kind, text, importance, happened_at, created_at, folded, key, " +
-    "gloss) values ('t', 'u', 'fact', 'Has a cat', 3, 1, 1, 'has a cat', 'pet.name', '有一只猫')")
+  m.store.execute('insert into memories (space, subject, kind, text, importance, happened_at, created_at, folded, ' +
+    "key, gloss) values ('t', 'u', 'fact', 'Has a cat', 3, 1, 1, 'has a cat', 'pet.name', '有一只猫')")
   assert.equal(m.episodes.search('u', 'Mochi').length, 1)
   assert.equal(m.store.meta('terms_version'), '4')
   assert.deepEqual(m.store.rows('select term from note_terms order by term').map(row => row.term),

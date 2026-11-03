@@ -9,7 +9,8 @@ import * as G from '../lib/gut.js'
 import { Mneme } from '../lib/mneme.js'
 import { before, hooks } from '../plugin/hooks.js'
 
-const text = (role, words, kind) => ({ role, ...(kind ? { source: { kind } } : {}), content: [{ type: 'text', text: words }] })
+const text = (role, words, kind) => ({ role, ...(kind ? { source: { kind } } : {}),
+  content: [{ type: 'text', text: words }] })
 
 function harness (config, model = true) {
   const handlers = {}, logs = [], asked = []
@@ -21,7 +22,8 @@ function harness (config, model = true) {
         asked.push(request)
         const said = request.messages[0].content[0].text
         let answer = '{"side": null}'
-        if (request.system === G.FORM) answer = JSON.stringify({ people: [], topic: ['work'], sender_feels: 'tired', language: 'zh' })
+        const form = { people: [], topic: ['work'], sender_feels: 'tired', language: 'zh' }
+        if (request.system === G.FORM) answer = JSON.stringify(form)
         else if (said.includes(G.ASK)) answer = '{"tender": 0.7, "calm": 0.3}'
         else if (said.includes(G.NOTE)) answer = '{"mood": -1, "feel": {"tender": 1}}'
         else if (said.includes('这个属性的人')) answer = '你嘴硬心软。'

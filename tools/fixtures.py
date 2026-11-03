@@ -1,11 +1,11 @@
-"""Writes test/fixtures/parity.json: what Python's mneme-llm gives for a set of inputs, so the JavaScript tests can check
-this port against it without Python.
+"""Writes test/fixtures/parity.json: what Python's mneme-llm gives for a set of inputs, so the JavaScript tests can
+check this port against it without Python.
 
     python3 tools/fixtures.py           write test/fixtures/parity.json
     python3 tools/fixtures.py --check   exit 1 when what this Python's mneme-llm gives differs from the committed file
 
-What it holds: text (terms, tokens, fold, normalize, clean, blank, clip, fit, split) for listed and random strings, and a
-digest of the same for 20,000 more drawn with Python's random numbers (the tests draw them again with the port of it);
+What it holds: text (terms, tokens, fold, normalize, clean, blank, clip, fit, split) for listed and random strings, and
+a digest of the same for 20,000 more drawn with Python's random numbers (the tests draw them again with the port of it);
 talking days and stamps in thirteen zones; surface bounds; every config default as the file keeps it, and checked
 values; relation lines; the gut born from starter.json.gz and after a sleep; and the scenario (test/fixtures/
 scenario.json) as Python reads it after running it, with a digest of every row of the file it made.
@@ -79,7 +79,8 @@ def stamps() -> list[float]:
 
 
 def config_part() -> dict:
-    checks = [["companion.name", "大肥鱼"], ["companion.name", ""], ["companion.name", "x" * 81], ["companion.zone", "UTC+8"],
+    checks = [["companion.name", "大肥鱼"], ["companion.name", ""], ["companion.name", "x" * 81],
+              ["companion.zone", "UTC+8"],
               ["companion.zone", "UTC+15"], ["companion.zone", "UTC-0530"], ["companion.zone", "Asia/Shanghai"],
               ["companion.zone", "asia/shanghai"], ["companion.zone", "Mars/Olympus"], ["companion.zone", "UTC+٨"],
               ["memory.half_life_days", 30], ["memory.half_life_days", True], ["memory.daily_quota", 2.0],
@@ -162,7 +163,8 @@ def build() -> dict:
         "mneme_llm": mneme_llm.__version__, "terms_version": texts.version(),
         "text": {"alphabet": ALPHABET, "clips": CLIPS, "fits": FITS, "cases": listed,
                  "out": [text_of(case) for case in listed],
-                 "drawn": {"count": DRAWN, "seed": SEED, "digest": digest(text_of(case) for case in drawn(DRAWN, SEED))}},
+                 "drawn": {"count": DRAWN, "seed": SEED,
+                           "digest": digest(text_of(case) for case in drawn(DRAWN, SEED))}},
         "dates": {"zones": ZONES, "stamps": stamps(),
                   "out": {name: [[dates.talking_day(moment, configs.zone_of(name)), dates.stamp(moment,
                                                                                                configs.zone_of(name))]

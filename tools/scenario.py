@@ -1,5 +1,6 @@
 """test/fixtures/scenario.json through Python's mneme-llm: its operations into a file, then what reading the file gives,
-and every row of the file in a canonical form. tools/scenario.js does the same through dsh-mneme-llm; the two must agree.
+and every row of the file in a canonical form. tools/scenario.js does the same through dsh-mneme-llm; the two must
+agree.
 
     python3 tools/scenario.py write FILE        the operations into FILE (a new file)
     python3 tools/scenario.py read FILE         what reading FILE gives, as JSON
@@ -92,7 +93,8 @@ def read(m: Mneme, state: dict, given: dict) -> dict:
                 "first": [first.text, first.at, first.by_command, first.send] if first else None,
                 "days": m.episodes.talking_days(subject), "count": m.episodes.count(subject),
                 "tokens_after": m.episodes.tokens_after(subject, 0, days=3), "latest": list(m.episodes.latest(subject)),
-                "relation": [relation.role, relation.closeness, relation.since, relation.updated_at] if relation else None,
+                "relation": [relation.role, relation.closeness, relation.since, relation.updated_at]
+                if relation else None,
                 "line": m.relations.line(subject, user), "weight": m.relations.weight(subject)})
         for id in ids:
             episode = m.episodes.get(id)

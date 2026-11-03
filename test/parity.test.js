@@ -17,17 +17,13 @@ import { Store, dumps } from '../lib/store.js'
 import { bounds } from '../lib/surface.js'
 import * as T from '../lib/text.js'
 import * as scenarios from '../tools/scenario.js'
+import { FEELS, FORMS, near as close } from './helpers.js'
 
 const P = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8'))
 const STARTER = fileURLToPath(new URL('../starter.json.gz', import.meta.url))
 const textOf = text => [T.terms(text), py.repr(T.tokens(text)), T.fold(text), T.normalize(text), T.clean(text),
   T.blank(text), P.text.clips.map(n => T.clip(text, n)), P.text.fits.map(n => T.fit(text, n)), py.split(text).join(' ')]
-const near = (actual, expected, within = 2e-9) => {
-  assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort())
-  for (const key of Object.keys(expected)) {
-    assert.ok(Math.abs(actual[key] - expected[key]) < within, `${key}: ${actual[key]} against ${expected[key]}`)
-  }
-}
+const near = (actual, expected) => close(assert, actual, expected)
 
 test('the fixtures are mneme-llm 0.4.0\'s, with the tokenizer this port has', () => {
   assert.equal(P.mneme_llm, '0.4.0')
@@ -54,13 +50,15 @@ test('text: 20,000 strings drawn with Python\'s random numbers come out the same
 test('talking days and local times in thirteen zones, across the changes of summer time', () => {
   for (const name of P.dates.zones) {
     const zone = zoneOf(name)
-    P.dates.stamps.forEach((moment, index) => assert.deepEqual([dates.talkingDay(moment, zone), dates.stamp(moment, zone)],
-      P.dates.out[name][index], `${name} ${moment}`))
+    P.dates.stamps.forEach((moment, index) => assert.deepEqual(
+      [dates.talkingDay(moment, zone), dates.stamp(moment, zone)], P.dates.out[name][index], `${name} ${moment}`))
   }
 })
 
 test('what the surface keeps and may reach', () => {
-  for (const [recent, floor, cap, window, keep, top] of P.bounds) assert.deepEqual(bounds(recent, floor, cap, window), [keep, top])
+  for (const [recent, floor, cap, window, keep, top] of P.bounds) {
+    assert.deepEqual(bounds(recent, floor, cap, window), [keep, top])
+  }
 })
 
 test('a new space\'s config is written row for row as Python writes it', () => {
@@ -85,7 +83,9 @@ test('who people are to her, as the prompt says it, as closeness fades', () => {
   const store = new Store(':memory:'), at = { t: 1767225600.0 }
   const relations = new Relations(store, 's', { clock: () => at.t })
   for (const [subject, role, closeness] of [['a', 'creator', null], ['b', 'family', 60.5], ['c', 'friend', 39.5],
-    ['d', 'acquaintance', 0.5], ['e', 'friend', 79.5], ['f', 'friend', 20.4999]]) relations.set(subject, role, { closeness })
+    ['d', 'acquaintance', 0.5], ['e', 'friend', 79.5], ['f', 'friend', 20.4999]]) {
+    relations.set(subject, role, { closeness })
+  }
   const found = []
   for (const days of [0, 1, 15, 45, 400]) {
     at.t = 1767225600.0 + days * 86400
@@ -103,14 +103,14 @@ test('the gut born from its starter, and after a sleep, has Python\'s weights', 
   assert.equal(rows.length, P.gut.rows)
   const net = new G.Net()
   net.start(rows)
-  const forms = [{ people: ['coworker'], gender: ['woman'], topic: ['lunch'], event: ['ate'], sender_feels: 'happy', toward_you: 'none' },
-    { people: [], gender: [], topic: ['rain', 'Bus'], event: ['got wet'], sender_feels: 'tired', toward_you: 'asking' },
-    { people: ['mother'], gender: ['woman'], topic: ['health'], event: ['fell'], sender_feels: 'worried', toward_you: 'affection' }]
-  const feels = [{ jealous: 0.7, sweet: 0.3 }, { tender: 1.0 }, { worried: 0.6, sad: 0.4 }]
-  forms.flatMap(form => [10, 85].map(closeness => net.vector(form, closeness))).forEach((item, i) => near(item, P.gut.born[i]))
-  for (let index = 0; index < 30; index++) net.teach(forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3])
+  const forms = FORMS, feels = FEELS, vectors = () => forms.flatMap(form => [10, 85].map(closeness =>
+    net.vector(form, closeness)))
+  vectors().forEach((item, i) => near(item, P.gut.born[i]))
+  for (let index = 0; index < 30; index++) {
+    net.teach(forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3])
+  }
   await net.sleep(30)
-  forms.flatMap(form => [10, 85].map(closeness => net.vector(form, closeness))).forEach((item, i) => near(item, P.gut.slept[i]))
+  vectors().forEach((item, i) => near(item, P.gut.slept[i]))
   assert.ok(Math.abs(net.share() - P.gut.share) < 2e-9)
   const marks = new G.Marks(base)
   for (let index = 0; index < 90; index++) {
@@ -127,7 +127,7 @@ test('the gut born from its starter, and after a sleep, has Python\'s weights', 
     marks.speaks(language, form, closeness)))), P.gut.spoken)
 })
 
-test('the scenario: what Python reads from the file it made, and every row of that file, come out the same here', async () => {
+test('the scenario: what Python read from its file, and every row of that file, come out the same', async () => {
   const given = scenarios.scenario(), folder = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-'))
   const file = path.join(folder, 'scenario.db'), state = { t: given.ops[0][1] }
   const m = scenarios.opened(file, given, state)

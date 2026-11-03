@@ -55,7 +55,9 @@ test('zones: an offset, an IANA name Python knows in the same case, or the machi
   assert.deepEqual(zoneOf('UTC+٨'), { offset: 8 * 3600 }) // (Python's \d is any script's digit)
   assert.deepEqual(zoneOf('Asia/Shanghai'), { name: 'Asia/Shanghai' })
   assert.equal(zoneOf(''), null)
-  for (const name of ['UTC+15', 'UTC+08:60', 'Mars/Olympus', '../etc/passwd']) assert.throws(() => zoneOf(name), py.ValueError)
+  for (const name of ['UTC+15', 'UTC+08:60', 'Mars/Olympus', '../etc/passwd']) {
+    assert.throws(() => zoneOf(name), py.ValueError)
+  }
   const late = Date.UTC(2026, 0, 1, 17) / 1000 // 01:00 the next day in Shanghai: still the 1st, as a talking day
   assert.equal(talkingDay(late, zoneOf('Asia/Shanghai')), talkingDay(Date.UTC(2026, 0, 1, 12) / 1000, { offset: 0 }))
 })
@@ -100,7 +102,7 @@ test('everyone anything is kept of', () => {
   m.observe('b', [['B', 'hi']])
   m.surface.setFirst('a', 'be kind')
   clock.now = START
-  m.store.execute("insert into memories (space, subject, kind, text, importance, happened_at, created_at, folded) values " +
-    "('t', 'c', 'fact', 'x', 2, 1, 1, 'x')")
+  m.store.execute('insert into memories (space, subject, kind, text, importance, happened_at, created_at, folded) ' +
+    "values ('t', 'c', 'fact', 'x', 2, 1, 1, 'x')")
   assert.deepEqual(m.everyone(), ['a', 'b', 'c'])
 })

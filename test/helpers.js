@@ -14,5 +14,22 @@ export function companion ({ config = null, complete = null, at = START, file = 
 export const small = (floor = 100, cap = 100000, days = 2) => ({ memory: { surface_floor: floor, surface_cap: cap,
   surface_days: days } })
 
-export const say = (m, clock, said, reply = '好', subject = 'u') => m.episodes.keep(subject, [['Leo', said], ['小鲸', reply]],
-  { at: clock.now })
+export const say = (m, clock, said, reply = '好', subject = 'u') =>
+  m.episodes.keep(subject, [['Leo', said], ['小鲸', reply]], { at: clock.now })
+
+/** The forms and feelings mneme-llm's gut vectors are made from. */
+export const FORMS = [
+  { people: ['coworker'], gender: ['woman'], topic: ['lunch'], event: ['ate'], sender_feels: 'happy',
+    toward_you: 'none' },
+  { people: [], gender: [], topic: ['rain', 'Bus'], event: ['got wet'], sender_feels: 'tired', toward_you: 'asking' },
+  { people: ['mother'], gender: ['woman'], topic: ['health'], event: ['fell'], sender_feels: 'worried',
+    toward_you: 'affection' }]
+export const FEELS = [{ jealous: 0.7, sweet: 0.3 }, { tender: 1.0 }, { worried: 0.6, sad: 0.4 }]
+
+/** Each mood of `actual` within `within` of `expected`'s. */
+export function near (assert, actual, expected, within = 2e-9) {
+  assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort())
+  for (const key of Object.keys(expected)) {
+    assert.ok(Math.abs(actual[key] - expected[key]) < within, `${key}: ${actual[key]} against ${expected[key]}`)
+  }
+}

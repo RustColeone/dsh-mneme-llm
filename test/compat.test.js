@@ -90,10 +90,12 @@ function gutRead (file) {
   return found
 }
 
-const gutForms = () => [{ people: ['coworker'], gender: ['woman'], topic: ['lunch'], event: ['ate'], sender_feels: 'happy',
-  toward_you: 'none' }, { people: [], gender: [], topic: ['rain'], event: ['got wet'], sender_feels: 'tired',
-  toward_you: 'asking' }, { people: ['mother'], gender: ['woman'], topic: ['health'], event: ['fell'],
-  sender_feels: 'worried', toward_you: 'affection' }]
+const gutForms = () => [
+  { people: ['coworker'], gender: ['woman'], topic: ['lunch'], event: ['ate'], sender_feels: 'happy',
+    toward_you: 'none' },
+  { people: [], gender: [], topic: ['rain'], event: ['got wet'], sender_feels: 'tired', toward_you: 'asking' },
+  { people: ['mother'], gender: ['woman'], topic: ['health'], event: ['fell'], sender_feels: 'worried',
+    toward_you: 'affection' }] // (tools/gutfile.py's)
 
 function sameGut (ours, theirs) {
   const { vectors, ...rest } = ours, { vectors: wanted, ...others } = theirs

@@ -5,27 +5,26 @@ import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import * as G from '../lib/gut.js'
+import { FEELS, FORMS, near as close } from './helpers.js'
 
 const V = JSON.parse(fs.readFileSync(new URL('./gut_vectors.json', import.meta.url), 'utf8'))
-const forms = [{ people: ['coworker'], gender: ['woman'], topic: ['lunch'], event: ['ate'], sender_feels: 'happy', toward_you: 'none' },
-  { people: [], gender: [], topic: ['rain', 'Bus'], event: ['got wet'], sender_feels: 'tired', toward_you: 'asking' },
-  { people: ['mother'], gender: ['woman'], topic: ['health'], event: ['fell'], sender_feels: 'worried', toward_you: 'affection' }]
-const feels = [{ jealous: 0.7, sweet: 0.3 }, { tender: 1 }, { worried: 0.6, sad: 0.4 }]
-const near = (actual, expected) => {
-  assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort())
-  for (const key of Object.keys(expected)) assert.ok(Math.abs(actual[key] - expected[key]) < 2e-9, `${key}: ${actual[key]} against ${expected[key]}`)
-}
+const forms = FORMS, feels = FEELS
+const near = (actual, expected) => close(assert, actual, expected)
 const file = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gut-')), 'gut.db')
 
 test('tags and features', () => {
   assert.deepEqual(forms.map(G.tags), V.tags)
-  forms.flatMap(form => [10, 40, 85].map(closeness => G.features(form, closeness))).forEach((item, index) => near(item, V.features[index]))
+  forms.flatMap(form => [10, 40, 85].map(closeness => G.features(form, closeness)))
+    .forEach((item, index) => near(item, V.features[index]))
 })
 
 test('the network after 30 lessons, and the balance', () => {
   const net = new G.Net()
-  for (let index = 0; index < 30; index++) net.teach(forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3])
-  forms.flatMap(form => [10, 85].map(closeness => net.vector(form, closeness))).forEach((item, index) => near(item, V['after 30 lessons'][index]))
+  for (let index = 0; index < 30; index++) {
+    net.teach(forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3])
+  }
+  forms.flatMap(form => [10, 85].map(closeness => net.vector(form, closeness)))
+    .forEach((item, index) => near(item, V['after 30 lessons'][index]))
   ;[0, 5, 200].forEach((exchanges, index) => assert.ok(Math.abs(G.balance(net, exchanges) - V.balance[index]) < 2e-9))
 })
 
@@ -39,25 +38,28 @@ test('tone', () => {
 test('the line, her words, notes and languages', () => {
   assert.deepEqual([G.line({ jealous: 0.4, sweet: 0.3, tender: 0.2, happy: 0.1 }, ['喵', '本鲸']), G.line({ calm: 0.9 }),
     G.line({ happy: 0.6, calm: 0.2, sad: 0.2 })], V.lines)
-  assert.deepEqual([G.mine('午饭吃了吗', '吃啦喵 nya', 'zh'), G.mine('hi there', 'Fine nya 本鲸 😊', 'en'), G.mine('元気', 'いいにゃ nya', 'ja')], V.mine)
-  assert.deepEqual([G.written('{"mood": 9, "feel": {"sad": 2, "calm": 2, "angry": 9}}'), G.written('{"feel": {"angry": 1}}')], V.written)
+  assert.deepEqual([G.mine('午饭吃了吗', '吃啦喵 nya', 'zh'), G.mine('hi there', 'Fine nya 本鲸 😊', 'en'),
+    G.mine('元気', 'いいにゃ nya', 'ja')], V.mine)
+  assert.deepEqual([G.written('{"mood": 9, "feel": {"sad": 2, "calm": 2, "angry": 9}}'),
+    G.written('{"feel": {"angry": 1}}')], V.written)
   assert.deepEqual(['今天好累', '今日好攰', 'おはよう', 'hello'].map(G.languageOf), V.languages)
 })
 
 test('how much a side is wanted, and what her readings come to', () => {
   const day = 86400
-  ;[40, 60, 85, 100].forEach((closeness, index) => assert.ok(Math.abs(G.strength([[0, true, closeness], [day, true, closeness],
-    [2 * day, false, 60]], 10 * day) - V.strength[index]) < 2e-9))
+  ;[40, 60, 85, 100].forEach((closeness, index) => assert.ok(Math.abs(G.strength([[0, true, closeness],
+    [day, true, closeness], [2 * day, false, 60]], 10 * day) - V.strength[index]) < 2e-9))
   assert.deepEqual(['{"side": null}', 'nothing', '{"side": {"name": " 「小 绿茶」 ", "more": false, "what": " 说 她\\n不好 "}}',
     `{"side": {"name": "御姐", "what": "${'从容'.repeat(40)}"}}`, '{"side": {"name": ""}}'].map(G.shaping), V.shaping)
-  ;[40, 85].forEach((closeness, index) => assert.ok(Math.abs(G.strength([[0, true, closeness], [2 * day, false, 60]], 100 * day,
-    G.KEEPS) - V['strength over months'][index]) < 2e-9))
-  assert.deepEqual([[1, 0], [1, 0.5], [1, 0.99], [2, 0.5], [5, 0.2]].map(([count, roll]) => G.draw({ 御姐: 3, 病娇: 1, 三无: 0.5 },
-    count, () => roll)), V.draw)
+  ;[40, 85].forEach((closeness, index) => assert.ok(Math.abs(G.strength([[0, true, closeness], [2 * day, false, 60]],
+    100 * day, G.KEEPS) - V['strength over months'][index]) < 2e-9))
+  assert.deepEqual([[1, 0], [1, 0.5], [1, 0.99], [2, 0.5], [5, 0.2]].map(([count, roll]) =>
+    G.draw({ 御姐: 3, 病娇: 1, 三无: 0.5 }, count, () => roll)), V.draw)
   assert.deepEqual(G.NAMES, V.names)
   ;[['你先夸她，再让她不如你。', '你先夸她，再 让她不如你！'], ['你从容。', '你先夸她。'], ['', 'x']].forEach(([one, other], index) =>
     assert.ok(Math.abs(G.overlap(one, other) - V.overlap[index]) < 2e-9))
-  assert.deepEqual(['{"name": "（御姐）", "what": "你从容（不急）\\n，不撒娇。"}', '{"name": "x"}', 'no'].map(G.grownSide), V['grown side'])
+  assert.deepEqual(['{"name": "（御姐）", "what": "你从容（不急）\\n，不撒娇。"}', '{"name": "x"}', 'no'].map(G.grownSide),
+    V['grown side'])
 })
 
 test('a side is only a name on the list', () => {
@@ -169,7 +171,8 @@ test('a slow model does not hold her up, and a wipe leaves her as she was born',
   const before = G.limits.TIME_LIMIT
   G.limits.TIME_LIMIT = 0.2
   try {
-    const turn = new G.Turn(gut, () => new Promise(resolve => setTimeout(resolve, 2000, '{}').unref()), '', 'hello', 'a')
+    const slow = () => new Promise(resolve => setTimeout(resolve, 2000, '{}').unref())
+    const turn = new G.Turn(gut, slow, '', 'hello', 'a')
     const started = performance.now()
     assert.equal(await turn.feel([], '', 85, 0), 'Reply in English.')
     assert.ok(performance.now() - started < 1500)

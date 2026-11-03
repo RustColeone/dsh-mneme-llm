@@ -29,22 +29,24 @@ test('it reads as real turns, in the order said, and says when its newest was sa
   say(m, clock, '第一句', '好的')
   clock.now += 60
   say(m, clock, '第二句', '嗯')
-  assert.deepEqual(m.surface.read('u').messages, [{ role: 'user', content: '第一句' }, { role: 'assistant', content: '好的' },
-    { role: 'user', content: '第二句' }, { role: 'assistant', content: '嗯' }])
+  assert.deepEqual(m.surface.read('u').messages, [{ role: 'user', content: '第一句' },
+    { role: 'assistant', content: '好的' }, { role: 'user', content: '第二句' }, { role: 'assistant', content: '嗯' }])
   assert.equal(m.surface.read('u').upto, clock.now)
 })
 
 test('who said what: a classmate is not her, a group keeps names, her own words and her role are hers', () => {
   const [m, clock] = companion()
   m.episodes.keep('a', [['Leo', 'hi'], ['Gemini', 'hello']], { at: clock.now })
-  assert.deepEqual(m.surface.read('a').messages, [{ role: 'user', content: 'Leo: hi' }, { role: 'user', content: 'Gemini: hello' }])
+  assert.deepEqual(m.surface.read('a').messages, [{ role: 'user', content: 'Leo: hi' },
+    { role: 'user', content: 'Gemini: hello' }])
   m.episodes.keep('b', [['小鲸', '在吗']], { at: clock.now })
   assert.deepEqual(m.surface.read('b').messages, [{ role: 'assistant', content: '在吗' }])
   m.episodes.keep('c', [['Leo', 'hi'], ['Mei', 'hey'], ['小鲸', '你们好']], { at: clock.now })
-  assert.deepEqual(m.surface.read('c').messages, [{ role: 'user', content: 'Leo: hi' }, { role: 'user', content: 'Mei: hey' },
-    { role: 'assistant', content: '你们好' }])
+  assert.deepEqual(m.surface.read('c').messages, [{ role: 'user', content: 'Leo: hi' },
+    { role: 'user', content: 'Mei: hey' }, { role: 'assistant', content: '你们好' }])
   m.episodes.keep('d', [{ role: 'user', content: 'hi' }, { role: 'assistant', content: '你好' }], { at: clock.now })
-  assert.deepEqual(m.surface.read('d').messages, [{ role: 'user', content: 'hi' }, { role: 'assistant', content: '你好' }])
+  assert.deepEqual(m.surface.read('d').messages, [{ role: 'user', content: 'hi' },
+    { role: 'assistant', content: '你好' }])
 })
 
 test('it is no second store, and follows the person into any chat, in the order said', () => {

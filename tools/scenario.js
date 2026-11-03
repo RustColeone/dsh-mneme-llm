@@ -16,7 +16,8 @@ export const SCENARIO = fileURLToPath(new URL('../test/fixtures/scenario.json', 
 
 export const scenario = () => JSON.parse(fs.readFileSync(SCENARIO, 'utf8'))
 
-export const opened = (file, given, state) => new Mneme(file, given.space, { config: given.config, clock: () => state.t })
+export const opened = (file, given, state) => new Mneme(file, given.space, { config: given.config,
+  clock: () => state.t })
 
 /** The operations, in order; what the summary writer was asked, and what each let-go came to. */
 export async function apply (m, state, ops) {
@@ -138,4 +139,5 @@ async function main ([command, file]) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) await main(process.argv.slice(2))
+const run = process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])
+if (run) await main(process.argv.slice(2))
