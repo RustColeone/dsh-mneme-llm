@@ -7,13 +7,17 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import * as dates from '../lib/dates.js'
 import * as G from '../lib/gut.js'
+import { migrate } from '../lib/migrate.js'
+import { Mneme } from '../lib/mneme.js'
 import * as py from '../lib/python.js'
 import * as T from '../lib/text.js'
 import * as scenarios from '../tools/scenario.js'
+import * as worlds from '../tools/world.js'
 
 const PYTHON = process.env.MNEME_LLM_PYTHON || 'python3'
 const TOOLS = fileURLToPath(new URL('../tools/', import.meta.url))
@@ -164,4 +168,95 @@ test('talking days in the machine\'s own zone, as TZ sets it', { skip }, () => {
     if (before === undefined) delete process.env.TZ
     else process.env.TZ = before
   }
+})
+
+// ---- notes, mood and meaning ------------------------------------------------------------------------------------------
+const json = value => JSON.parse(JSON.stringify(value)) // (as the other side's JSON reads)
+const rows = file => JSON.parse(tool('world.py', 'dump', file))
+
+test('the world: the same operations, with the same models, ask the same, give the same and make the same file',
+  { skip }, async () => {
+    const where = folder(), theirs = path.join(where, 'python.db'), ours = path.join(where, 'js.db')
+    const python = JSON.parse(tool('world.py', 'write', theirs))
+    const js = json(await worlds.play(ours))
+    assert.deepEqual(js.asked, python.asked)
+    js.out.forEach((item, index) => assert.deepEqual(item, python.out[index], `${index} ${item[0]}`))
+    assert.equal(js.out.length, python.out.length)
+    assert.deepEqual(rows(ours), rows(theirs))
+    assert.deepEqual(scenarios.dump(theirs), rows(theirs))
+  })
+
+test('a file either side wrote, the other reads and adds to as its writer would: notes, keys and their history, ' +
+  'profiles, recalls, moods and their events, aliases, links, vectors and the floor, config', { skip }, async () => {
+  for (const first of ['python', 'js']) {
+    const where = folder(), file = path.join(where, 'world.db'), copy = path.join(where, 'copy.db')
+    if (first === 'python') tool('world.py', 'write', file)
+    else await worlds.play(file)
+    fs.copyFileSync(file, copy)
+    const theirs = JSON.parse(tool('world.py', 'run', copy, 'more')), ours = json(await worlds.play(file, 'more'))
+    assert.deepEqual(ours.asked, theirs.asked, first)
+    ours.out.forEach((item, index) => assert.deepEqual(item, theirs.out[index], `${first} ${index} ${item[0]}`))
+    assert.deepEqual(rows(file), rows(copy), first)
+  }
+})
+
+test('an export from one side, imported by the other, makes the file the first would have made', { skip }, async () => {
+  const where = folder(), file = path.join(where, 'world.db')
+  tool('world.py', 'write', file)
+  const theirs = JSON.parse(tool('world.py', 'export', file, 'whale')), ours = json(worlds.moved(file, 'whale'))
+  delete theirs.exported_at
+  delete ours.exported_at
+  assert.deepEqual(ours, theirs)
+  const data = path.join(where, 'export.json')
+  fs.writeFileSync(data, JSON.stringify(worlds.moved(file, 'whale')))
+  for (const space of ['fresh', 'cat', 'whale']) { // a space with nothing, one with its own people, and the same one
+    const one = path.join(where, `${space}-python.db`), other = path.join(where, `${space}-js.db`)
+    fs.copyFileSync(file, one)
+    fs.copyFileSync(file, other)
+    const added = JSON.parse(tool('world.py', 'import', one, space, data)) // Python adds this port's export ...
+    assert.equal(worlds.moved(other, space, JSON.parse(fs.readFileSync(data, 'utf8'))), added) // ... and so does it
+    assert.deepEqual(rows(other), rows(one), space)
+  }
+})
+
+/** What this port reads of a migrated file, as tools/oldfile.py reads it in Python. */
+function oldRead (file) {
+  const m = new Mneme(file, 't', { embed: false, memoryLanguage: null, companionName: '小鲸' })
+  try {
+    return json({ notes: m.memory.notes('u').map(note => [note.id, note.text, note.kind, note.importance]),
+      recall: m.recall('u', 'cat', { important: 0, recent: 0 }).chosen.map(item => [item.note.id, item.why]),
+      search: m.episodes.search('u', '年糕', { limit: 9 }).map(episode => episode.id),
+      first: ['u', 'v'].map(subject => m.surface.first(subject)).filter(Boolean).map(first => first.text),
+      began: m.surface.began('u'), messages: m.surface.read('u').messages, person: m.person('web:leo'),
+      unknown: m.config.unknown, everyone: m.everyone(), kept: m.episodes.keep('u', [['Leo', '新的一句']]).id })
+  } finally {
+    m.close()
+  }
+}
+
+test('a schema 1 file is migrated here as Python migrates it, and each reads the other\'s', { skip }, () => {
+  const where = folder(), built = tool('oldfile.py', 'build', where).trim()
+  const theirs = path.join(where, 'python.db'), ours = path.join(where, 'js.db')
+  fs.copyFileSync(built, theirs)
+  fs.copyFileSync(built, ours)
+  const said = JSON.parse(tool('oldfile.py', 'migrate', theirs))
+  assert.deepEqual(['ok', migrate(ours).replaceAll(ours, 'FILE')], [said[0], said[1].replaceAll(theirs, 'FILE')])
+  assert.deepEqual(rows(ours), rows(theirs))
+  assert.match(migrate(theirs), /schema 2 already, nothing to do/)
+  assert.match(JSON.parse(tool('oldfile.py', 'migrate', ours))[1], /schema 2 already, nothing to do/)
+  for (const [reader, writer] of [[theirs, ours], [ours, theirs]]) { // each side reads what the other migrated
+    const copy = reader + '.read.db'
+    fs.copyFileSync(writer, copy)
+    assert.deepEqual(oldRead(copy), JSON.parse(tool('oldfile.py', 'read', writer)))
+  }
+  const broken = path.join(where, 'broken.db') // a failure leaves the file as it was, on both sides
+  fs.copyFileSync(built, broken)
+  const db = new DatabaseSync(broken)
+  db.exec("update episodes set lines = 'not json' where id = 3")
+  db.close()
+  const before = fs.readFileSync(broken)
+  assert.throws(() => migrate(broken), py.ValueError)
+  assert.deepEqual(fs.readFileSync(broken), before)
+  assert.equal(JSON.parse(tool('oldfile.py', 'migrate', broken))[0], 'JSONDecodeError')
+  assert.deepEqual(fs.readFileSync(broken), before)
 })
