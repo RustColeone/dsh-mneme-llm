@@ -1,0 +1,54 @@
+{
+  "name": "dsh-mneme-llm",
+  "version": "0.1.0",
+  "description": "mneme-llm in JavaScript: memory and mood for AI companions in one SQLite file that the Python package reads too, and a DeepSeek Harness plugin that uses it.",
+  "type": "module",
+  "license": "MIT",
+  "author": "RustColeone",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "main": "plugin/index.js",
+  "exports": {
+    ".": "./plugin/index.js",
+    "./lib": "./lib/index.js",
+    "./lib/*": "./lib/*.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "plugin",
+    "starter.json.gz",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mneme-llm",
+    "llm",
+    "memory",
+    "long-term memory",
+    "companion",
+    "sqlite",
+    "deepseek-harness",
+    "dsh-plugin"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "*"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
+  }
+}
