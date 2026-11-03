@@ -7,16 +7,25 @@ import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { Config, check, written, zoneOf } from '../lib/config.js'
+import { notesIn } from '../lib/capture.js'
+import { Config, DEFAULTS, check, toToml, written, zoneOf } from '../lib/config.js'
 import * as dates from '../lib/dates.js'
+import { Choice, Predicate, Prompt, Score, normalized } from '../lib/decide.js'
+import { spreadBin, tally, threshold } from '../lib/episodes.js'
 import * as G from '../lib/gut.js'
+import { Words } from '../lib/i18n.js'
+import * as calibrate from '../lib/meaning/calibrate.js'
+import { Unify } from '../lib/meaning/unify.js'
 import * as py from '../lib/python.js'
 import { Random } from '../lib/random.js'
 import { Relations } from '../lib/relations.js'
 import { Store, dumps } from '../lib/store.js'
 import { bounds } from '../lib/surface.js'
 import * as T from '../lib/text.js'
+import * as toml from '../lib/toml.js'
+import { specs } from '../lib/tools.js'
 import * as scenarios from '../tools/scenario.js'
+import * as worlds from '../tools/world.js'
 import { FEELS, FORMS, near as close } from './helpers.js'
 
 const P = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8'))
@@ -136,4 +145,169 @@ test('the scenario: what Python read from its file, and every row of that file, 
   m.close()
   const rows = dumps(scenarios.dump(file))
   assert.equal(crypto.createHash('sha256').update(rows).digest('hex'), P.scenario.dump)
+})
+
+// ---- notes, mood and meaning ------------------------------------------------------------------------------------------
+test('the judge: its message, and what it reads in a reply, label by label', () => {
+  const questions = [new Predicate('worth', 'Worth it?'), new Choice('feeling', 'Which feeling?',
+    { happy: 'happy (开心)', none: '' }), new Choice('pick', 'Pick one.', ['a', 'b', 'c']),
+  new Score('mood_change', 'How did it move?', [['-2', 'worse'], ['-1', ''], ['0', 'same'], ['1', ''], ['2', 'better']])]
+  const prompt = new Prompt(null)
+  assert.equal(prompt.message('我的猫叫年糕。'.repeat(3000) + 'end', questions), P.decide.message)
+  assert.equal(prompt.message('Leo: hi', questions.slice(0, 1)), P.decide.short)
+  const answer = found => [[...found.probabilities], found.confidence, found.by, found.reason, found.choice,
+    found.probability, found.name === 'mood_change' ? found.mean() : null]
+  P.decide.replies.forEach((reply, index) => {
+    const parsed = Object.fromEntries(Object.entries(prompt.parse(reply, questions)).map(([name, found]) => [name,
+      answer(found)]))
+    assert.deepEqual(parsed, P.decide.parsed[index], reply.slice(0, 80))
+  })
+  for (const [given, labels, wanted] of P.decide.normalized) assert.deepEqual([...normalized(given, labels)], wanted)
+})
+
+test('the note writer\'s replies as notes, held to the rules of writing', () => {
+  for (const [reply, name, wanted] of P.notes) {
+    assert.deepEqual(notesIn(reply, 1767229200.0, zoneOf(name)), wanted, `${name} ${reply.slice(0, 60)}`)
+  }
+})
+
+test('dates as a person says them, when a day began, noon of a day, a day written in a sentence', () => {
+  const { zones, moments, days, found, out } = P.dates2
+  for (const name of zones) {
+    const zone = zoneOf(name), now = 1767229200.0
+    assert.deepEqual(moments.map(moment => [dates.when(moment, now, zone), dates.when(moment, now, zone,
+      new Words('zh')), dates.dayBegan(moment, zone), dates.strftime(moment, zone, '%Y-%m-%d (%A) %d %B %Y, %H:%M')]),
+    out[name].when, name)
+    assert.deepEqual(days.map(day => dates.noon(day, zone)), out[name].noon, name)
+    assert.deepEqual(found.map(text => [dates.find(text, now, zone), dates.find(text, now, zone, { ahead: true })]),
+      out[name].find, name)
+  }
+})
+
+test('Python\'s sums of floats, reprs, lines, JSON and fixed digits', () => {
+  const { sums, summed, reprs, lines, loads, loaded, fixed } = P.python
+  sums.forEach((values, index) => { // (an empty sum is Python's int 0)
+    assert.equal(values.length ? py.repr(py.sum(values.map(Number))) : String(py.sum([])), summed[index], values.join())
+  })
+  P.text.cases.forEach((text, index) => {
+    assert.equal(py.reprString(text), reprs[index], JSON.stringify(text))
+    assert.deepEqual(py.splitlines(text), lines[index], JSON.stringify(text))
+  })
+  const constants = value => {
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return { constant: Number.isNaN(value) ? 'NaN' : value > 0 ? 'Infinity' : '-Infinity' }
+    }
+    if (Array.isArray(value)) return value.map(constants)
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, constants(item)]))
+    }
+    return value
+  }
+  loads.forEach((text, index) => {
+    let found
+    try {
+      found = ['ok', constants(py.loads(text))]
+    } catch (error) {
+      assert.ok(error instanceof py.ValueError, error.message)
+      found = ['error']
+    }
+    assert.deepEqual(found, loaded[index], text)
+  })
+  for (const [value, two, three] of fixed) assert.deepEqual([py.fixed(Number(value), 2), py.fixed(Number(value), 3)],
+    [two, three])
+})
+
+test('the scripts of text, and which text the unify tier translates', () => {
+  const { languages, scripts, translate } = P.scripts
+  P.text.cases.forEach((text, index) => {
+    const shares = T.scripts(text)
+    assert.deepEqual(Object.keys(shares), Object.keys(scripts[index]), JSON.stringify(text))
+    for (const [kind, share] of Object.entries(scripts[index])) assert.equal(shares[kind], share)
+    assert.deepEqual(languages.map(language => new Unify(null, language).needsTranslation(text)), translate[index])
+  })
+})
+
+/** A TOML document's table as tools/fixtures.py writes Python's: floats that are not finite and dates as text. */
+const plain = value => {
+  if (typeof value === 'number' && !Number.isFinite(value)) return { float: py.repr(value) }
+  if (value instanceof toml.TomlDate) return { date: value.iso }
+  if (Array.isArray(value)) return value.map(plain)
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, plain(item)]))
+  }
+  return value
+}
+
+test('TOML documents read as tomllib reads them, and refused with its words', () => {
+  P.toml.documents.forEach((text, index) => {
+    let found
+    try {
+      found = ['ok', plain(toml.loads(text))]
+    } catch (error) {
+      assert.ok(error instanceof toml.TOMLDecodeError, error.stack)
+      found = ['error', error.message]
+    }
+    assert.deepEqual(found, P.toml.read[index], JSON.stringify(text))
+  })
+})
+
+test('a config file seeds a space row for row, and the config written as a file reads back the same', () => {
+  assert.equal(toToml(DEFAULTS), P.toml.template)
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-')), file = path.join(folder, 'companion.toml')
+  fs.writeFileSync(file, P.toml.documents[0])
+  const store = new Store(':memory:'), config = new Config(store, 's', () => 1.0)
+  config.seed(file)
+  assert.deepEqual(store.rows('select * from config order by rowid').map(row => [row.key, row.value, row.origin]),
+    P.toml.rows)
+  assert.equal(config.toToml(), P.toml.written)
+  assert.deepEqual(plain(toml.loads(config.toToml())), P.toml.again)
+  store.close()
+})
+
+test('the floor\'s numbers: quantiles, the spread\'s bins and its threshold', () => {
+  const { lists, quantiles, bins, tallies, unrelated } = P.floor
+  lists.forEach((given, index) => {
+    const values = given.map(Number)
+    assert.deepEqual([0, 0.25, 0.5, 0.95, 1].map(q => calibrate.quantile(values, q)), quantiles[index])
+    assert.deepEqual(values.map(spreadBin), bins[index])
+    const found = new Array(200).fill(0), pairs = tally(found, values)
+    assert.deepEqual([pairs, found.flatMap((count, at) => count ? [at] : []), threshold(found, Math.max(pairs, 100)),
+      threshold(found, pairs)], tallies[index])
+  })
+  assert.deepEqual(calibrate.UNRELATED, unrelated)
+})
+
+test('the tools\' specs, in every style', () => {
+  for (const style of ['openai', 'responses', 'anthropic', 'gemini', 'mcp']) assert.deepEqual(specs(style), P.specs[style])
+  assert.deepEqual(specs('mcp', { prefix: 'memory_', withSubject: true }), P.specs.subject)
+})
+
+/** JSON both sides write the same: every number as a float's repr, keys in order, ASCII. */
+function canonical (value) {
+  const order = item => {
+    if (typeof item === 'number') return { '#': py.repr(item) }
+    if (Array.isArray(item)) return item.map(order)
+    if (item !== null && typeof item === 'object') {
+      return Object.fromEntries(Object.keys(item).sort(py.compare).map(key => [key, order(item[key])]))
+    }
+    return item
+  }
+  return py.dumps(order(value), { compact: true })
+}
+
+const sha = text => crypto.createHash('sha256').update(text).digest('hex')
+
+test('the world: notes, mood, the judge, the writer, meaning, tools, links and moves give what Python gave', async () => {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-')), file = path.join(folder, 'world.db')
+  for (const key of ['ops', 'more']) {
+    const { asked, out } = await worlds.play(file, key), wanted = P.world[key]
+    assert.deepEqual(asked, wanted.asked, key)
+    out.forEach(([kind, found], index) => {
+      const [, expected] = wanted.out[index]
+      if (['read', 'export_import'].includes(kind)) assert.equal(sha(canonical(found)), expected, `${key} ${index}`)
+      else assert.deepEqual(JSON.parse(JSON.stringify(found)), expected, `${key} ${index} ${kind}`)
+    })
+    assert.equal(out.length, wanted.out.length)
+    assert.equal(sha(dumps(scenarios.dump(file))), wanted.dump, key)
+  }
 })
