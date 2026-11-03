@@ -14,6 +14,8 @@ And for notes, mood and meaning: the judge's messages and what it reads in repli
 notes, the scripts of text, dates as a person says them, Python's sums, reprs and JSON, TOML documents as tomllib reads
 them and the config as a file, the floor's numbers, the tools' specs, and the world (test/fixtures/world.json): what
 each operation gave, what the models were asked, and a digest of every row of the file.
+
+And the command line: what `mneme-llm` prints for a run of commands on one file, and what its MCP server answers.
 """
 
 from __future__ import annotations
@@ -431,6 +433,107 @@ def floor_part() -> dict:
             "unrelated": [list(pair) for pair in calibrate.UNRELATED]}
 
 
+CLI_TOML = '[companion]\nname = "大肥鱼"\nzone = "UTC+8"\n'
+CLI_START = 1767229200.0  # each command a minute after the one before
+CLI_FILE = ["--db", "cli.db", "--space", "dafeiyu", "--config", "companion.toml"]
+CLI = [["remember", "discord:42", "养了一只叫年糕的猫", "--kind", "fact", "--key", "pet.name", "--importance", "4"],
+       ["remember", "discord:42", "下周五考数学", "--kind", "plan", "--date", "2026-01-09"],
+       ["remember", "discord:42", "下周五考数学", "--kind", "plan", "--date", "2026-01-09"],
+       ["remember", "discord:42", "养了一只叫汤圆的猫", "--key", "pet.name"],
+       ["remember", "discord:42", "Plays the cello", "--kind", "preference", "--importance", "2"],
+       ["remember", "discord:42", "x", "--date", "2026-02-30"],
+       ["recall", "discord:42", "猫"], ["recall", "discord:42", "考试 数学 cello", "--explain"],
+       ["recall", "web:9", "nothing"], ["context", "discord:42", "猫", "--user-name", "Leo"], ["context", "nobody"],
+       ["--display-language", "zh", "context", "discord:42", "考试"], ["notes", "discord:42"],
+       ["notes", "discord:42", "--kind", "plan"], ["history", "discord:42", "pet.name"], ["profile", "discord:42"],
+       ["profile", "discord:42", "Leo 喜欢猫，在学大提琴。"], ["relate", "discord:42", "creator"],
+       ["relate", "discord:42", "--closeness", "92.5"], ["relate", "web:7", "--closeness", "5"],
+       ["relate", "web:7", "friend", "--closeness", "200"], ["relate", "web:7", "friend"],
+       ["relate", "web:8", "acquaintance", "--closeness", "12.5"], ["relate", "web:8"], ["relations"],
+       ["relate", "web:8", "--remove"], ["relate", "web:8", "--remove"], ["alias", "discord:42", "鲸酱"],
+       ["alias", "discord:42"], ["alias", "web:7", "x" * 41], ["alias", "web:7", "--remove"],
+       ["link", "web:leo", "discord:42"], ["link", "web:leo", "web:7"], ["people"], ["recall", "web:leo", "猫"],
+       ["unlink", "web:leo"], ["unlink", "web:leo"], ["people"], ["mood", "discord:42"],
+       ["--display-language", "zh", "mood", "discord:42", "--reset"], ["subjects"], ["recalls", "discord:42"],
+       ["forget", "discord:42", "--key", "pet.name"], ["forget", "discord:42", "--id", "99"],
+       ["history", "discord:42", "pet.name"], ["export", "--out", "backup.json"], ["export"],
+       ["import", "backup.json", "--into", "copy"], ["--space", "copy", "notes", "discord:42"],
+       ["import", "backup.json"], ["config", "show", "companion"], ["config", "show", "memory.daily", "--origins"],
+       ["config", "set", "memory.daily_quota", "4"], ["config", "set", "companion.name", "42"],
+       ["config", "set", "mood.weights", "{user = 2}"], ["config", "set", "memory.daily_quota", "2.5"],
+       ["config", "set", "no.such", "1"], ["config", "set", "companion.name"], ["config", "show", "companion"],
+       ["config", "check"], ["config", "defaults", "memory.daily_quota"], ["config", "defaults", "no.such"],
+       ["config", "apply", "companion.toml"], ["config", "show", "mood.weights", "--origins"],
+       ["tools", "--style", "gemini"], ["config", "template"], ["erase", "discord:42"],
+       ["erase", "discord:42", "--yes"], ["subjects"], ["export"],
+       ["remember"], ["forget", "a"], ["notes", "a", "extra"], ["nosuch"]]  # (the last four: usage)
+MCP = ['{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}',
+       '{"jsonrpc":"2.0","method":"notifications/initialized"}', '{"jsonrpc":"2.0","id":2,"method":"tools/list"}',
+       '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"remember","arguments":{"subject":"discord:42",'
+       '"text":"养了一只叫年糕的猫","kind":"fact","key":"pet.name","importance":4}}}',
+       '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"recall","arguments":{"subject":"discord:42",'
+       '"query":"猫"}}}', '{"jsonrpc":"2.0","id":5,"method":"ping"}',
+       '{"jsonrpc":"2.0","id":6,"method":"resources/list"}', 'not json',
+       '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"remember","arguments":{"subject":"discord:42",'
+       '"text":"考试","kind":"plan","date":"2026-01-09","importance":3.0}}}',
+       '{"jsonrpc":"2.0","id":8.0,"method":"tools/call","params":{"name":"mood","arguments":{"subject":"discord:42"}}}',
+       '{"jsonrpc":"2.0","id":"nine","method":"tools/call","params":{"name":"forget","arguments":'
+       '"{\\"subject\\": \\"discord:42\\", \\"key\\": \\"pet.name\\"}"}}',
+       '{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"search","arguments":{"subject":"discord:42",'
+       '"query":"猫"}}}', '{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"read","arguments":'
+       '{"subject":"discord:42","id":"#1"}}}',
+       '{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"nope"}}',
+       '{"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"recall","arguments":{"query":"猫"}}}',
+       '{"jsonrpc":"2.0","id":14,"method":"tools/call","params":{"name":"remember","arguments":{"subject":"discord:42",'
+       '"text":"","kind":"fact"}}}', '{"jsonrpc":"2.0","id":15,"method":"tools/call","params":[1]}',
+       '[1, 2]', '   ', '{"jsonrpc":"2.0","id":null,"method":"ping"}', '﻿{"jsonrpc":"2.0","id":16,"method":"ping"}',
+       '{"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"recall","arguments":[1]}}']
+MCP_BYTES = "\n".join(MCP).encode() + b"\n\xff\xfe{}\r\n" + MCP[5].encode()  # (not UTF-8; a last line without "\n")
+
+
+def cli_part() -> dict:
+    """What Python's command prints for each command line, run one after another on one file, a minute apart; and
+    what its MCP server answers, bound to a person and not."""
+    import contextlib
+    import io
+    import os
+    import time
+    import types
+    from unittest import mock
+
+    from mneme_llm import cli
+    now = {"t": CLI_START}
+    kwdefaults = dict(mneme_llm.Mneme.__init__.__kwdefaults__, clock=lambda: now["t"])
+
+    def run(argv, data=b""):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                mock.patch.object(sys, "stdin", types.SimpleNamespace(buffer=io.BytesIO(data))):
+            try:
+                code = cli.main(argv)
+            except SystemExit as stopped:  # (argparse)
+                code = stopped.code
+        return [code, out.getvalue(), err.getvalue()]
+    found = {"toml": CLI_TOML, "start": CLI_START, "file": CLI_FILE, "commands": CLI, "out": [], "mcp": MCP_BYTES.hex()}
+    with tempfile.TemporaryDirectory() as folder, mock.patch.object(time, "time", lambda: now["t"]), \
+            mock.patch.object(mneme_llm.Mneme.__init__, "__kwdefaults__", kwdefaults), \
+            mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+        here = os.getcwd()
+        os.chdir(folder)
+        try:
+            Path("companion.toml").write_text(CLI_TOML, encoding="utf-8")
+            for index, argv in enumerate(CLI):
+                now["t"] = CLI_START + 60 * index
+                found["out"].append(run(CLI_FILE + argv))
+            now["t"] = CLI_START
+            found["bound"] = run(["--db", "mcp.db", "--config", "companion.toml", "mcp", "--subject", "discord:42"],
+                                 MCP_BYTES)
+            found["unbound"] = run(["--db", "mcp2.db", "--config", "companion.toml", "mcp"], MCP_BYTES)
+        finally:
+            os.chdir(here)
+    return found
+
+
 def build() -> dict:
     listed = LISTED + drawn(300, SEED + 1)
     return {
@@ -461,6 +564,7 @@ def build() -> dict:
         "specs": {style: specs(style) for style in ("openai", "responses", "anthropic", "gemini", "mcp")} |
         {"subject": specs("mcp", prefix="memory_", with_subject=True)},
         "world": world_part(),
+        "cli": cli_part(),
     }
 
 

@@ -9,6 +9,9 @@
     "node": ">=22.13"
   },
   "main": "plugin/index.js",
+  "bin": {
+    "dsh-mneme-llm": "bin/dsh-mneme-llm.js"
+  },
   "exports": {
     ".": "./plugin/index.js",
     "./lib": "./lib/index.js",
@@ -18,6 +21,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "bin",
     "lib",
     "plugin",
     "starter.json.gz",
