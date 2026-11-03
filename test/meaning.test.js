@@ -1,4 +1,4 @@
-// Meaning: vectors, embedders, the measured floor, the unify tier, and resting what fails. Ported from mneme-llm's
+// Meaning: vectors, embedders, the measured floor, the unify tier, and resting what fails: the cases of mneme-llm's
 // tests/test_meaning.py and tests/test_calibrate.py; every embedder here is a function of the test's (no network).
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

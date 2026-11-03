@@ -1,5 +1,5 @@
-// Episodes: what was said, word for word, found by words, fading by talking days. Ported from mneme-llm's
-// tests/test_episodes.py (the parts with no meaning tiers).
+// Episodes: what was said, word for word, found by words, fading by talking days: the cases of
+// mneme-llm's tests/test_episodes.py with no meaning tiers.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { talkingDay } from '../lib/dates.js'

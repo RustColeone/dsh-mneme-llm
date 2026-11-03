@@ -8,7 +8,7 @@ dsh-mneme-llm; the two must agree, call for call and row for row.
     python3 tools/world.py import FILE SPACE DATA an export (a JSON file) added to SPACE of FILE, with its config
     python3 tools/world.py dump FILE         every row of FILE, as JSON
 
-Vectors are compared as Python does without numpy (in double precision), as the port does.
+Vectors are compared as Python does without numpy (in double precision), as this package does.
 """
 
 from __future__ import annotations

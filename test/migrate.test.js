@@ -1,4 +1,4 @@
-// A file of schema 1 made current: refused until then, migrated once, whole or not at all. Ported from mneme-llm's
+// A file of schema 1 made current: refused until then, migrated once, whole or not at all: the cases of mneme-llm's
 // tests/test_migrate.py, on the file its tests build (test/oldfile.js).
 import assert from 'node:assert/strict'
 import fs from 'node:fs'

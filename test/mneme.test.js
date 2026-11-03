@@ -1,4 +1,4 @@
-// A companion's config and who people are to her, through `Mneme`. Ported in part from mneme-llm's
+// A companion's config and who people are to her, through `Mneme`: cases of mneme-llm's
 // tests/test_config.py and tests/test_relations.py.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'

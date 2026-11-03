@@ -1,11 +1,11 @@
 """Writes test/fixtures/parity.json: what Python's mneme-llm gives for a set of inputs, so the JavaScript tests can
-check this port against it without Python.
+check this package against it without Python.
 
     python3 tools/fixtures.py           write test/fixtures/parity.json
     python3 tools/fixtures.py --check   exit 1 when what this Python's mneme-llm gives differs from the committed file
 
 What it holds: text (terms, tokens, fold, normalize, clean, blank, clip, fit, split) for listed and random strings, and
-a digest of the same for 20,000 more drawn with Python's random numbers (the tests draw them again with the port of it);
+a digest of the same for 20,000 more drawn with Python's random numbers (the tests draw them again with random.js);
 talking days and stamps in thirteen zones; surface bounds; every config default as the file keeps it, and checked
 values; relation lines; the gut born from starter.json.gz and after a sleep; and the scenario (test/fixtures/
 scenario.json) as Python reads it after running it, with a digest of every row of the file it made.

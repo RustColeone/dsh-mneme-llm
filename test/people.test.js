@@ -1,4 +1,4 @@
-// One person under several accounts: links, joining what each kept, erasing, moving. Ported from mneme-llm's
+// One person under several accounts: links, joining what each kept, erasing, moving: the cases of mneme-llm's
 // tests/test_people.py and tests/test_aliases.py.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

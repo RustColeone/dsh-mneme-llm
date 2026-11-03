@@ -1,4 +1,4 @@
-// The numbers mneme-llm pins for its gut (its tests/gut_vectors.json, copied here unchanged): this port gives the same.
+// The numbers mneme-llm pins for its gut (its tests/gut_vectors.json, copied here unchanged), and what the gut does.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'

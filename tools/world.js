@@ -208,7 +208,7 @@ export async function run (w, ops) {
   return out
 }
 
-/** JSON of what this port gives: a number that is not finite as text, as Python's side writes it. */
+/** JSON of what this package gives: a number that is not finite as text, as Python's side writes it. */
 function clean (value) {
   if (typeof value === 'number' && !Number.isFinite(value)) return py.repr(value)
   if (value instanceof Map) value = Object.fromEntries(value)

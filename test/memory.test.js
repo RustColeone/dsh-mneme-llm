@@ -1,5 +1,5 @@
 // Notes: keys and their history, the daily quota, forgetting, pruning, recall by words, the context block, moving
-// between files. Ported from mneme-llm's tests/test_memory.py.
+// between files: the cases of mneme-llm's tests/test_memory.py.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import * as dates from '../lib/dates.js'

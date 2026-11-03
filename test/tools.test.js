@@ -1,4 +1,4 @@
-// Tools for the model, the judge, the note writer and the prompt. Ported from mneme-llm's tests/test_tools.py,
+// Tools for the model, the judge, the note writer and the prompt: the cases of mneme-llm's tests/test_tools.py,
 // tests/test_observe.py and tests/test_decide.py.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

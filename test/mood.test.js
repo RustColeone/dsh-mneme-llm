@@ -1,4 +1,4 @@
-// The mood: drifting back, the guardrails, judging, telling once. Ported from mneme-llm's tests/test_mood.py.
+// The mood: drifting back, the guardrails, judging, telling once: the cases of mneme-llm's tests/test_mood.py.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Answer } from '../lib/decide.js'

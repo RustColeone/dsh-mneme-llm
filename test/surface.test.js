@@ -1,4 +1,4 @@
-// The surface and first prompts: what was said lately, as real turns. Ported from mneme-llm's tests/test_surface.py.
+// The surface and first prompts: what was said lately, as real turns: the cases of mneme-llm's tests/test_surface.py.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { EXCHANGE } from '../lib/episodes.js'

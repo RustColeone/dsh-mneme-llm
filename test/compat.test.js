@@ -69,7 +69,7 @@ test('a file Python wrote, with a link, is read here as Python reads it; what is
     assert.deepEqual(m.people.all(), { 'web:leo': 'discord:42' })
     m.close()
     fs.copyFileSync(file, copy)
-    tool('scenario.py', 'more', copy) // Python adds `more` to one copy, this port to the other
+    tool('scenario.py', 'more', copy) // Python adds `more` to one copy, this package to the other
     state.t = given.more[0][1]
     m = scenarios.opened(file, given, state)
     await scenarios.apply(m, state, given.more)
@@ -213,13 +213,13 @@ test('an export from one side, imported by the other, makes the file the first w
     const one = path.join(where, `${space}-python.db`), other = path.join(where, `${space}-js.db`)
     fs.copyFileSync(file, one)
     fs.copyFileSync(file, other)
-    const added = JSON.parse(tool('world.py', 'import', one, space, data)) // Python adds this port's export ...
+    const added = JSON.parse(tool('world.py', 'import', one, space, data)) // Python adds this package's export ...
     assert.equal(worlds.moved(other, space, JSON.parse(fs.readFileSync(data, 'utf8'))), added) // ... and so does it
     assert.deepEqual(rows(other), rows(one), space)
   }
 })
 
-/** What this port reads of a migrated file, as tools/oldfile.py reads it in Python. */
+/** What this package reads of a migrated file, as tools/oldfile.py reads it in Python. */
 function oldRead (file) {
   const m = new Mneme(file, 't', { embed: false, memoryLanguage: null, companionName: '小鲸' })
   try {
