@@ -26,26 +26,35 @@ whichever writes it.
   `exportData` and `importData`.
 - **Config files**: `config` may be a TOML file; `config.toToml()` writes the config as a file to start from.
 - **Migration** of a file of schema 1 (`migrate(file)`).
+- **The gut:** `wordsFrom` keeps her word habits in her line for the people at least that close; by default they are
+  there for everyone.
 - **The command line**, `dsh-mneme-llm`: notes, recall with its reasons, the prompt's block, history, forget, erase,
   roles, aliases, links, mood, export and import, the whole config (show, set, apply, defaults, check, template), the
   tools' definitions. The same options and output as the Python package's `mneme-llm`.
 - **The MCP server**, `dsh-mneme-llm mcp`: her tools over stdio for any MCP client, bound to one person
   (`--subject`) or naming one in each call.
 - **The plugin:**
-  - A new session (DSH's events show she has said nothing in it yet) starts with what she keeps of the person, as
-    turns of their own: their first prompt if they turned it on, the summary of what she let go, and their newest
-    exchanges from any session.
-  - Before her first step, one message beside the person's: who they are to her, her notes, her look at what was said
-    before, her mood's news, and her gut's line.
+  - A new session (DSH's events show she has said nothing in it yet) starts with DSH's system prompt, then what she
+    keeps of the person, as turns of their own: their first prompt if they turned it on, the summary of what she let
+    go, and their newest exchanges from any session. Her persona and the first prompt are what she reads first.
+  - Before her first step, one message beside the person's: who they are to her (and, when they are not you, who her
+    owner is, by name), her notes, her look at what was said before, her mood's news, and her gut's line. Her word
+    habits are in that line only with people at closeness 40 or more, so a way of talking she has with you stays
+    with you.
   - After her reply, beside the conversation: the exchange word for word, her mood and notes from her own model, the
     surface letting go of what is old, once a day her impression of the person, and a lesson for her gut. No key of its
     own: it uses the model the session uses.
   - Each sender a chat channel names is a person of their own; `accounts` says which accounts are you, and `others`
     what everyone else is to her. A turn that starts any other way is her speaking up on her own, kept as hers.
-  - `$first` and `$new` (with `deep` and `gut`), typed as messages and answered with no model call; `/mneme-first` and
-    `/mneme-new` in DSH's own command list.
+  - In a group, the mention of her own account a message opens with (`@20002 …`) is left out of what she keeps and
+    reads. She knows her account once the same mention has opened two group messages and nobody writes from it.
+  - `$first` and `$new` (with `deep` and `gut`), typed as messages and answered by the plugin, every one of them with
+    no model call, in the language the person writes in (English or Chinese); `/mneme-first` and `/mneme-new` in
+    DSH's own command list.
   - Her tools `mneme_search` and `mneme_read`, over everything said with the person she is talking with.
   - Her folder is under DSH's home (`$DSH_HOME`, or `~/.dsh`).
+- **Changed:** the package's starter for the gut, `starter.json.gz`, holds feelings only: a companion's word habits
+  come from her own replies alone.
 - **Changed:** `observe` is async and returns a promise. With no model and no embedder, everything it keeps is kept by
   the time it returns.
 - **Fixed:** on Node 22.13 to 22.15, a write that failed left its transaction open, and every later write failed with

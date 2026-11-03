@@ -146,8 +146,10 @@ const line = await turn.feel(m.surface.slice('discord:42'), memory, closeness, m
 await turn.learn(reply)                                          // beside the conversation: her note, a lesson
 ```
 
-`starter` is a file of lessons she is born with; the package's own is `starter.json.gz`. Without one, her model decides
-alone until she has lived.
+`starter` is a file of lessons she is born with; the package's own is `starter.json.gz`, which holds feelings only, so
+her word habits come from her own replies alone. Without one, her model decides alone until she has lived. `wordsFrom`
+keeps her word habits in her line for the people at least that close (`new Gut(file, { starter, wordsFrom: 40 })`, as
+the plugin has it); by default they are there for everyone.
 
 **Tools.** Give her model `remember`, `recall`, `forget`, `mood`, `search` and `read` in its API's format, and run its
 calls through one toolbox:
@@ -182,10 +184,11 @@ After installing it into a profile, add it to that profile's patch, `~/.dsh/prof
 Then each turn:
 
 1. **A new session** (a session in which DSH's events show she has said nothing yet) starts with what she keeps of the
-   person, as turns of their own: their first prompt if they turned it on, the summary of what she let go, and the
-   newest of what you said to each other, in any session.
-2. **Before her first step**, one message goes beside yours: who you are to her, her notes, what was said before that
-   bears on it (her look), her mood's news, and her gut's line. It stays in the session until DSH compacts it.
+   person, as turns of their own, after DSH's system prompt: their first prompt if they turned it on, the summary of
+   what she let go, and the newest of what you said to each other, in any session.
+2. **Before her first step**, one message goes beside yours: who you are to her (and, when someone else is talking, who
+   her owner is), her notes, what was said before that bears on it (her look), her mood's news, and her gut's line,
+   with her word habits in it only for people at closeness 40 or more. It stays in the session until DSH compacts it.
 3. **Her tools** `mneme_search` and `mneme_read` look through everything said before with that person.
 4. **After her reply**, beside the conversation: the exchange is kept word for word, her model judges her mood and
    writes the notes worth keeping, the surface lets go of what is old, once a day she writes a short impression of the
@@ -198,12 +201,16 @@ three seconds at most) and a few after, beside the conversation.
 sent it: their words inside one element whose first attribute is their account, like `<message qq="10001"
 nickname="Leo">…</message>` (that is `qq:10001`). Each sender is a person of their own to her, with their own memory,
 mood and closeness; the accounts in `accounts` are you. Text before the element marks a group: there nothing she keeps
-is put in front of a new session, and no search comes with her look. A turn that starts any other way is her speaking up
-on her own: her message is kept as hers, and no notes are taken from it. It works alongside other plugins, such as a
-chat channel or persona cards; it adds its own messages to the session and leaves the system prompt and the rest of the
-context to them.
+is put in front of a new session, and no search comes with her look. A group message to her usually opens with a
+mention of her account (`@20002 …`): once one mention has opened two group messages, more of them than any other, and
+nobody has written to her from that account, it is hers, and it is left out of what she keeps and reads (her folder
+keeps it, in `self.json`). A turn that starts any other way is her speaking up on her own: her message is kept as hers,
+and no notes are taken from it. It works alongside other plugins, such as a chat channel or persona cards; it adds its
+own messages to the session, writes DSH's own system prompt in a new session first, as DSH renders it, so that her
+persona comes before what she keeps, and leaves the system prompt and the rest of the context to them.
 
-**Commands.** Type them as messages: no model reads them, and the answer comes back in the chat.
+**Commands.** Type them as messages: the plugin answers them itself, with no model call, in the language you write in
+(English or Chinese), and the answer comes back in the chat.
 
 | | |
 |---|---|
