@@ -13,36 +13,37 @@ the same file, one after the other.
 This is version 0.1.0, the foundation. It needs Node 22.13 or later (for `node:sqlite`) and nothing else: no
 dependencies.
 
-## What 0.1.0 ports
+## What 0.2.0 ports
 
 It ports mneme-llm 0.4.0 (file schema 2).
 
-| Part | In 0.1.0 | Python |
+| Part | In 0.2.0 | Python |
 |---|---|---|
 | The file: every table and index, schema 2, other versions refused, WAL, transactions | yes | `store.py` |
-| Search terms, token counts, cleaning and cutting text (tokenizer version 4, no jieba) | yes | `text.py` |
-| Talking days and local times, in any zone | yes | `dates.py` |
-| Exchanges kept word for word: keep, search, look, ranking, fading, rehearsal | yes, by words | `episodes.py` |
+| Search terms, token counts, cleaning and cutting text (tokenizer version 4, no jieba), scripts | yes | `text.py` |
+| Talking days and local times in any zone, dates as a person says them, dates in a sentence | yes | `dates.py` |
+| Exchanges kept word for word: keep, search, look, ranking, fading, rehearsal | yes, also by meaning | `episodes.py` |
 | The surface: recent turns, its summary, clearing, first prompts | yes | `surface.py` |
 | Roles and closeness | yes | `relations.py` |
-| Reading links between accounts | yes | `people.py` |
-| The config: every key, default and rule | yes, from a table | `config.py` |
+| Notes and recall, keys and their history, quotas, the profile card, forget and purge | yes | `memory.py` |
+| The note writer and the profile writer | yes | `capture.py` |
+| Aliases | yes | `aliases.py` |
+| Mood: judged, guarded, told once | yes | `mood.py` |
+| The judge: yes/no, choices and scores on your model, or a judge of your own | yes | `decide.py` |
+| Meaning: embeddings (OpenAI's, or your own), the measured floor, the look's bar, the unify tier | yes | `meaning/` |
+| Tools for the model in every style, and the Toolbox | yes | `tools.py` |
+| Linking accounts and joining what each kept, erase and wipe, export and import | yes | `__init__.py`, `people.py` |
+| The config: every key, default and rule; config files (TOML, read as `tomllib` reads them) | yes | `config.py` |
+| Migration of a schema 1 file | yes | `migrate.py` |
 | Sentences and prompts, English and Chinese | yes | `i18n.py`, `prompts.py` |
 | The gut | yes, as in 0.4.0 | `gut.py` |
-| Notes and recall, the profile card, aliases | later | `memory.py`, `capture.py`, `aliases.py` |
-| Mood and the judge | later | `mood.py`, `decide.py` |
-| Meaning: embeddings, the look's bar, the unify tier | later | `meaning/` |
-| Tools for the model (search, read) | later | `tools.py` |
-| Linking accounts, erase and wipe, export and import | later | `__init__.py` |
-| Config files (TOML), the command line, migration | later | `config.py`, `cli.py`, `migrate.py` |
+| The command line, the MCP server | later | `cli.py`, `mcp.py` |
 | In DSH: the look in her prompt | later | |
 | In DSH: the surface put in front of a new session | later | |
 
-Notes are not ported yet, but their search index is. When this port rebuilds the indexes of a file, the file stays
-whole for Python.
-
-Linking, erasing and wiping touch every part of a file, notes and mood too. Until those parts are ported, `Mneme` does
-none of them. It reads the links Python made.
+The async calls are the natural form here: `observe`, `capture`, `reflect`, `regloss`, `aprompt`, `alook`, `arecall`
+and the like return promises. What Python has as words only (`prompt`, `look`, `recall`, `Toolbox.call`) stays a plain
+call. A judge of your own has an async `decide(input, questions)`.
 
 ## How compatibility is tested
 
