@@ -147,19 +147,6 @@ Each turn does what the earlier plugin, dsh-mneme-gut, did, and one more thing:
 The gut used to keep its lessons in a folder of JSON files. It now keeps them in an SQLite file, as Python's does. The
 old folder is not read.
 
-### Open questions about DSH's plugin API
-
-The hooks are the ones dsh-mneme-gut used in real DSH 0.2.1-rc.5. These points are not clear yet:
-
-1. Does DSH load the package's main entry as the plugin? Here it does (`plugin/index.js`), and the library is
-   `dsh-mneme-llm/lib`.
-2. May `apply` be async? The gut wakes at the first message, which takes about a second with the starter.
-3. At `agent/turn-stopping`, is the last assistant message in `deriveMessages()` always the final reply, also after
-   tool calls?
-4. Is there a stable id for the person and for the chat? The plugin uses `owner` and `dsh:<session id>`.
-5. How can a plugin put messages in front of a new session (the surface and the first prompt), and how does DSH
-   compact a message of the plugin's own kind (`source.kind: 'mneme-llm'`)?
-
 ## Develop
 
 ```sh
