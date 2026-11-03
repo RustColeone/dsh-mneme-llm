@@ -49,9 +49,13 @@
     }
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-home-paths": "*",
     "@deepseek-ai/dsh-llm": "*"
   },
   "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-home-paths": {
+      "optional": true
+    },
     "@deepseek-ai/dsh-llm": {
       "optional": true
     }
