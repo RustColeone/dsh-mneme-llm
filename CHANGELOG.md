@@ -39,17 +39,21 @@ whichever writes it.
     go and their newest exchanges from any session, as text that says when and who said what. Her persona and the
     first prompt are what she reads first. All of it is in the session's first step, so DSH keeps it with the session,
     and the session reopens as it was, after DSH restarts too.
-  - Before her first step, one message beside the person's: who they are to her (and, when they are not you, who her
-    owner is, by name), her notes, her look at what was said before, her mood's news, and her gut's line. Her word
+  - Before her first step, one message beside the person's: who they are to her (anyone but you by name, as the one
+    she is talking with), her notes, her look at what was said before, her mood's news, and her gut's line. Her word
     habits are in that line only with people at closeness 40 or more, so a way of talking she has with you stays
     with you.
   - After her reply, beside the conversation: the exchange word for word, her mood and notes from her own model, the
     surface letting go of what is old, once a day her impression of the person, and a lesson for her gut. No key of its
     own: it uses the model the session uses.
   - Each sender a chat channel names is a person of their own; `accounts` says which accounts are you, and `others`
-    what everyone else is to her. A turn that starts any other way is her speaking up on her own, kept as hers.
-  - In a group, the mention of her own account a message opens with (`@20002 …`) is left out of what she keeps and
-    reads. She knows her account once the same mention has opened two group messages and nobody writes from it.
+    what everyone else is to her. A turn that starts any other way is her speaking up on her own: her message is kept
+    as hers, as the first thing said, and nothing of what started it (another plugin's words to her); her mood
+    follows it.
+  - In a group, her look reads what the person writing said with her, in any chat, and what was said with her in that
+    group, never anyone else's private chats. The mention of her own account a message opens with (`@20002 …`) is left
+    out of what she keeps and reads. She knows her account once the same mention has opened two group messages and
+    nobody writes from it.
   - `$first` and `$new` (with `deep` and `gut`), typed as messages and answered by the plugin, every one of them with
     no model call, in the language the person writes in (English or Chinese): that of the words they give with the
     command, else of what they wrote last (a command's own words, such as `on` or `deep`, are in no language);

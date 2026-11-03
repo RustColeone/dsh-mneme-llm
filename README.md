@@ -187,9 +187,10 @@ Then each turn:
    person, after DSH's system prompt: their first prompt if they turned it on, as they wrote it, then the summary of
    what she let go and the newest of what you said to each other, in any session, as text that says when and who said
    what. It is all in the session's first step, so the session reopens as it was, after DSH restarts too.
-2. **Before her first step**, one message goes beside yours: who you are to her (and, when someone else is talking, who
-   her owner is), her notes, what was said before that bears on it (her look), her mood's news, and her gut's line,
-   with her word habits in it only for people at closeness 40 or more. It stays in the session until DSH compacts it.
+2. **Before her first step**, one message goes beside yours: who you are to her (when someone else is talking, that she
+   is talking with them, by name), her notes, what was said before that bears on it (her look), her mood's news, and
+   her gut's line, with her word habits in it only for people at closeness 40 or more. It stays in the session until
+   DSH compacts it.
 3. **Her tools** `mneme_search` and `mneme_read` look through everything said before with that person.
 4. **After her reply**, beside the conversation: the exchange is kept word for word, her model judges her mood and
    writes the notes worth keeping, the surface lets go of what is old, once a day she writes a short impression of the
@@ -202,13 +203,15 @@ three seconds at most) and a few after, beside the conversation.
 sent it: their words inside one element whose first attribute is their account, like `<message qq="10001"
 nickname="Leo">…</message>` (that is `qq:10001`). Each sender is a person of their own to her, with their own memory,
 mood and closeness; the accounts in `accounts` are you. Text before the element marks a group: there nothing she keeps
-is put in front of a new session, and no search comes with her look. A group message to her usually opens with a
-mention of her account (`@20002 …`): once one mention has opened two group messages, more of them than any other, and
-nobody has written to her from that account, it is hers, and it is left out of what she keeps and reads (her folder
-keeps it, in `self.json`). A turn that starts any other way is her speaking up on her own: her message is kept as hers,
-and no notes are taken from it. It works alongside other plugins, such as a chat channel or persona cards; it adds its
-own messages to each turn's first step, which DSH puts after its system prompt, so her persona comes before what she
-keeps, and it leaves the system prompt and the rest of the context to them.
+is put in front of a new session, no search comes with her look, and her look reads what the person writing said with
+her, in any chat, and what was said with her in that group, never anyone else's private chats. A group message to her
+usually opens with a mention of her account (`@20002 …`): once one mention has opened two group messages, more of them
+than any other, and nobody has written to her from that account, it is hers, and it is left out of what she keeps and
+reads (her folder keeps it, in `self.json`). A turn that starts any other way is her speaking up on her own: her
+message is kept as hers, as the first thing said, and nothing of what started it (another plugin's words to her); her
+mood follows it, and no notes are taken from it. It works alongside other plugins, such as a chat channel or persona
+cards; it adds its own messages to each turn's first step, which DSH puts after its system prompt, so her persona
+comes before what she keeps, and it leaves the system prompt and the rest of the context to them.
 
 **Commands.** Type them as messages: the plugin answers them itself, with no model call, in the language you write in
 (English or Chinese), and the answer comes back in the chat. The words of a command itself (`on`, `off`, `clear`,
