@@ -5,11 +5,13 @@ mneme-llm's does, whatever Unicode version Node ships.
     python3 tools/unicode.py --check   exit 1 when lib/unicode.js is not what this Python would write
 
 The tables are each code point's general category, its full case folding (`str.casefold`), what `str.split` takes
-for whitespace, and where each run of decimal digits starts. Python 3.13 carries Unicode 15.1.
+for whitespace, where each run of decimal digits starts, and the script of each letter as `text.scripts` reads it
+from the letter's name. Python 3.13 carries Unicode 15.1.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 import textwrap
 import unicodedata
@@ -19,6 +21,7 @@ TARGET = Path(__file__).resolve().parent.parent / "lib" / "unicode.js"
 CATEGORIES = ("Cn", "Lu", "Ll", "Lt", "Lm", "Lo", "Mn", "Mc", "Me", "Nd", "Nl", "No", "Pc", "Pd", "Ps", "Pe", "Pi",
               "Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Cs", "Co")
 CODES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%"  # one character per category, after each run's length in base 36
+SCRIPT_CODES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&*"  # one character per script, the same way
 
 
 def base36(number: int) -> str:
@@ -41,6 +44,26 @@ def runs() -> str:
             start, previous = code, category
     found.append(base36(0x110000 - start) + CODES[CATEGORIES.index(previous)])
     return "".join(found)
+
+
+def scripts() -> tuple[list[str], str]:
+    """The script of each code point that is a letter, as mneme_llm.text.scripts names it ("other" for a letter of a
+    script it does not name; "" for what is no letter), in runs."""
+    from mneme_llm.text import SCRIPTS
+    kinds = ["", "other", *dict.fromkeys(SCRIPTS.values())]
+    found, start, previous = [], 0, None
+    for code in range(0x110000):
+        character = chr(code)
+        kind = ""
+        if unicodedata.category(character).startswith("L"):
+            words = re.split(r"[ -]", unicodedata.name(character, ""))
+            kind = next((SCRIPTS[word] for word in words if word in SCRIPTS), "other")
+        if kind != previous:
+            if previous is not None:
+                found.append(base36(code - start) + SCRIPT_CODES[kinds.index(previous)])
+            start, previous = code, kind
+    found.append(base36(0x110000 - start) + SCRIPT_CODES[kinds.index(previous)])
+    return kinds, "".join(found)
 
 
 def js(text: str, width: int = 110) -> str:
@@ -76,10 +99,11 @@ def source() -> str:
     zeros = [code for code in range(0x110000) if unicodedata.category(chr(code)) == "Nd"
              and unicodedata.decimal(chr(code)) == 0]
     fold_text = "".join(f"{base36(code)}:{folded}" + "\u0001" for code, folded in folds)
+    kinds, script_runs = scripts()
     lines = [
         f"// Written by tools/unicode.py from Python's tables (Unicode {unicodedata.unidata_version}): do not edit.",
-        "// Each code point's general category, its full case folding, what str.split takes for whitespace, and where",
-        "// each run of decimal digits starts, as mneme-llm's Python sees them.",
+        "// Each code point's general category, its full case folding, what str.split takes for whitespace, where",
+        "// each run of decimal digits starts, and the script of each letter, as mneme-llm's Python sees them.",
         f"export const UNICODE = '{unicodedata.unidata_version}'",
         "export const CATEGORIES = " + listed(f"'{name}'" for name in CATEGORIES),
         f"export const CODES = '{CODES}'",
@@ -87,6 +111,9 @@ def source() -> str:
         "export const FOLDS =\n  " + js(fold_text),
         "export const SPACES = " + listed(f"0x{code:x}" for code in spaces),
         "export const ZEROS = " + listed(f"0x{code:x}" for code in zeros),
+        "export const SCRIPT_KINDS = " + listed(f"'{kind}'" for kind in kinds),
+        f"export const SCRIPT_CODES = '{SCRIPT_CODES}'",
+        "export const SCRIPT_RUNS =\n  " + js(script_runs),
     ]
     return "\n".join(lines) + "\n"
 
