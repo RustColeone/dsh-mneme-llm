@@ -62,6 +62,23 @@ test('how much a side is wanted, and what her readings come to', () => {
     V['grown side'])
 })
 
+test('her word habits: in her line for everyone, or with `wordsFrom` only for people that close', () => {
+  const heads = { zh: { names: ['主人'], w: {}, b: [5.0] } } // (a habit she has with everyone)
+  const said = (gut, closeness) => gut.feel(forms[0], { calm: 0.5, happy: 0.5 }, closeness, 0, 'zh').told
+  const everyone = new G.Gut(file())
+  everyone.wake()
+  everyone.marks.heads = heads
+  assert.ok(said(everyone, 20).includes('you keep saying 主人'))
+  const close = new G.Gut(file(), { wordsFrom: G.TEACH_FROM })
+  close.wake()
+  close.marks.heads = heads
+  assert.ok(said(close, G.TEACH_FROM).includes('you keep saying 主人'))
+  const stranger = said(close, 20)
+  assert.ok(stranger.startsWith('(Right now you feel') && !stranger.includes('keep saying'), stranger)
+  everyone.close()
+  close.close()
+})
+
 test('a side is only a name on the list', () => {
   assert.throws(() => new G.Gut('x', { tags: { 草莓: 'x' } }))
   assert.throws(() => new G.Gut('x', { tags: { 草莓: 'x' }, names: ['别的'] }))

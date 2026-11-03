@@ -26,6 +26,7 @@ import json
 import random
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 import math
@@ -69,6 +70,9 @@ FORMS = [{"people": ["coworker"], "gender": ["woman"], "topic": ["lunch"], "even
          {"people": ["mother"], "gender": ["woman"], "topic": ["health"], "event": ["fell"], "sender_feels": "worried",
           "toward_you": "affection"}]
 FEELS = [{"jealous": .7, "sweet": .3}, {"tender": 1.0}, {"worried": .6, "sad": .4}]
+# Normal words of a companion's own (how many of her replies hold each word, and how many replies), so her habits are
+# checked against a base whatever the starter holds.
+BASE = {"zh": (Counter({"哼": 40, "好的": 120, "呜呜": 200, "喵": 1}), 575), "en": (Counter({"nya": 2}), 594)}
 
 
 def text_of(case: str) -> list:
@@ -148,7 +152,7 @@ def gut_part() -> dict:
     net.sleep(seed=30)
     slept = [{key: round(value, 9) for key, value in net.vector(form, closeness).items()} for form in FORMS
              for closeness in (10, 85)]
-    marks = G.Marks(G.read_starter(ROOT / "starter.json.gz")[1])
+    marks = G.Marks(BASE)
     for index in range(90):
         words = [word for j, word in enumerate(["喵", "本鲸", "呜呜", "哼", "嘿嘿", "nya", "好的"]) if index % (j + 1) == 0]
         marks.teach(("zh", "en")[index % 2], FORMS[index % 3], index % 5 - 2, (85, 50, 41)[index % 3], words)

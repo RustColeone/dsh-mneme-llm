@@ -108,8 +108,11 @@ test('who people are to her, as the prompt says it, as closeness fades', () => {
 })
 
 test('the gut born from its starter, and after a sleep, has Python\'s weights', async () => {
-  const [rows, base] = G.readStarter(STARTER)
+  const [rows, words] = G.readStarter(STARTER)
   assert.equal(rows.length, P.gut.rows)
+  assert.deepEqual(words, {}, 'the starter holds feelings only: her words are her own')
+  const base = { zh: { words: new Map([['哼', 40], ['好的', 120], ['呜呜', 200], ['喵', 1]]), n: 575 },
+    en: { words: new Map([['nya', 2]]), n: 594 } } // (tools/fixtures.py's BASE)
   const net = new G.Net()
   net.start(rows)
   const forms = FORMS, feels = FEELS, vectors = () => forms.flatMap(form => [10, 85].map(closeness =>
