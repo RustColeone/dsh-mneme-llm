@@ -1,0 +1,494 @@
+{
+"after 30 lessons": [
+{
+"calm": 0.112559803,
+"happy": 0.112559803,
+"jealous": 0.238402235,
+"sad": 0.123726209,
+"sweet": 0.157545165,
+"tender": 0.125589084,
+"worried": 0.129617701
+},
+{
+"calm": 0.091550136,
+"happy": 0.091550136,
+"jealous": 0.344734387,
+"sad": 0.100150036,
+"sweet": 0.165777156,
+"tender": 0.101579953,
+"worried": 0.104658196
+},
+{
+"calm": 0.124972092,
+"happy": 0.124972092,
+"jealous": 0.161133876,
+"sad": 0.134494179,
+"sweet": 0.14008747,
+"tender": 0.174896712,
+"worried": 0.139443579
+},
+{
+"calm": 0.122680621,
+"happy": 0.122680621,
+"jealous": 0.17173135,
+"sad": 0.131937539,
+"sweet": 0.142672386,
+"tender": 0.171553239,
+"worried": 0.136744245
+},
+{
+"calm": 0.120538009,
+"happy": 0.120538009,
+"jealous": 0.16781646,
+"sad": 0.149843399,
+"sweet": 0.139871726,
+"tender": 0.134570128,
+"worried": 0.16682227
+},
+{
+"calm": 0.11591305,
+"happy": 0.11591305,
+"jealous": 0.190214,
+"sad": 0.143896376,
+"sweet": 0.14477503,
+"tender": 0.129200943,
+"worried": 0.160087552
+}
+],
+"balance": [
+0.566037736,
+0.303030303,
+0.1144641
+],
+"draw": [
+[
+"三无"
+],
+[
+"御姐"
+],
+[
+"病娇"
+],
+[
+"御姐",
+"病娇"
+],
+[
+"御姐",
+"三无",
+"病娇"
+]
+],
+"features": [
+{
+"close=low": 0.277350098,
+"event=ate": 0.277350098,
+"gender=woman": 0.277350098,
+"low:event=ate": 0.277350098,
+"low:gender=woman": 0.277350098,
+"low:people=coworker": 0.277350098,
+"low:sender_feels=happy": 0.277350098,
+"low:topic=lunch": 0.277350098,
+"low:toward_you=none": 0.277350098,
+"people=coworker": 0.277350098,
+"sender_feels=happy": 0.277350098,
+"topic=lunch": 0.277350098,
+"toward_you=none": 0.277350098
+},
+{
+"close=mid": 0.277350098,
+"event=ate": 0.277350098,
+"gender=woman": 0.277350098,
+"mid:event=ate": 0.277350098,
+"mid:gender=woman": 0.277350098,
+"mid:people=coworker": 0.277350098,
+"mid:sender_feels=happy": 0.277350098,
+"mid:topic=lunch": 0.277350098,
+"mid:toward_you=none": 0.277350098,
+"people=coworker": 0.277350098,
+"sender_feels=happy": 0.277350098,
+"topic=lunch": 0.277350098,
+"toward_you=none": 0.277350098
+},
+{
+"close=high": 0.277350098,
+"event=ate": 0.277350098,
+"gender=woman": 0.277350098,
+"high:event=ate": 0.277350098,
+"high:gender=woman": 0.277350098,
+"high:people=coworker": 0.277350098,
+"high:sender_feels=happy": 0.277350098,
+"high:topic=lunch": 0.277350098,
+"high:toward_you=none": 0.277350098,
+"people=coworker": 0.277350098,
+"sender_feels=happy": 0.277350098,
+"topic=lunch": 0.277350098,
+"toward_you=none": 0.277350098
+},
+{
+"close=low": 0.277350098,
+"event=got": 0.277350098,
+"event=wet": 0.277350098,
+"low:event=got": 0.277350098,
+"low:event=wet": 0.277350098,
+"low:sender_feels=tired": 0.277350098,
+"low:topic=bus": 0.277350098,
+"low:topic=rain": 0.277350098,
+"low:toward_you=asking": 0.277350098,
+"sender_feels=tired": 0.277350098,
+"topic=bus": 0.277350098,
+"topic=rain": 0.277350098,
+"toward_you=asking": 0.277350098
+},
+{
+"close=mid": 0.277350098,
+"event=got": 0.277350098,
+"event=wet": 0.277350098,
+"mid:event=got": 0.277350098,
+"mid:event=wet": 0.277350098,
+"mid:sender_feels=tired": 0.277350098,
+"mid:topic=bus": 0.277350098,
+"mid:topic=rain": 0.277350098,
+"mid:toward_you=asking": 0.277350098,
+"sender_feels=tired": 0.277350098,
+"topic=bus": 0.277350098,
+"topic=rain": 0.277350098,
+"toward_you=asking": 0.277350098
+},
+{
+"close=high": 0.277350098,
+"event=got": 0.277350098,
+"event=wet": 0.277350098,
+"high:event=got": 0.277350098,
+"high:event=wet": 0.277350098,
+"high:sender_feels=tired": 0.277350098,
+"high:topic=bus": 0.277350098,
+"high:topic=rain": 0.277350098,
+"high:toward_you=asking": 0.277350098,
+"sender_feels=tired": 0.277350098,
+"topic=bus": 0.277350098,
+"topic=rain": 0.277350098,
+"toward_you=asking": 0.277350098
+},
+{
+"close=low": 0.277350098,
+"event=fell": 0.277350098,
+"gender=woman": 0.277350098,
+"low:event=fell": 0.277350098,
+"low:gender=woman": 0.277350098,
+"low:people=mother": 0.277350098,
+"low:sender_feels=worried": 0.277350098,
+"low:topic=health": 0.277350098,
+"low:toward_you=affection": 0.277350098,
+"people=mother": 0.277350098,
+"sender_feels=worried": 0.277350098,
+"topic=health": 0.277350098,
+"toward_you=affection": 0.277350098
+},
+{
+"close=mid": 0.277350098,
+"event=fell": 0.277350098,
+"gender=woman": 0.277350098,
+"mid:event=fell": 0.277350098,
+"mid:gender=woman": 0.277350098,
+"mid:people=mother": 0.277350098,
+"mid:sender_feels=worried": 0.277350098,
+"mid:topic=health": 0.277350098,
+"mid:toward_you=affection": 0.277350098,
+"people=mother": 0.277350098,
+"sender_feels=worried": 0.277350098,
+"topic=health": 0.277350098,
+"toward_you=affection": 0.277350098
+},
+{
+"close=high": 0.277350098,
+"event=fell": 0.277350098,
+"gender=woman": 0.277350098,
+"high:event=fell": 0.277350098,
+"high:gender=woman": 0.277350098,
+"high:people=mother": 0.277350098,
+"high:sender_feels=worried": 0.277350098,
+"high:topic=health": 0.277350098,
+"high:toward_you=affection": 0.277350098,
+"people=mother": 0.277350098,
+"sender_feels=worried": 0.277350098,
+"topic=health": 0.277350098,
+"toward_you=affection": 0.277350098
+}
+],
+"grown side": [
+{
+"name": "御姐",
+"what": "你从容不急 ，不撒娇。"
+},
+null,
+null
+],
+"languages": [
+"zh",
+"yue",
+"ja",
+"en"
+],
+"lean": {
+"calm": 0.311384,
+"happy": 0.197552585,
+"jealous": 0.063202001,
+"sad": 0.035548998,
+"sweet": 0.148261949,
+"tender": 0.17163267,
+"worried": 0.072417798
+},
+"lines": [
+"(Right now you feel somewhat jealous, somewhat sweet, a little tender, you keep saying 喵, 本鲸, and it shows in how you answer.)",
+"",
+"(Right now you feel mostly happy, a little sad, a little calm, and it shows in how you answer.)"
+],
+"mine": [
+[
+"吃啦",
+"吃啦喵",
+"啦",
+"啦喵",
+"喵"
+],
+[
+"fine",
+"nya",
+"😊"
+],
+[
+"い",
+"いい",
+"いいに",
+"いいにゃ",
+"いに",
+"いにゃ",
+"に",
+"にゃ",
+"ゃ"
+]
+],
+"names": [
+"傲娇",
+"傲沉",
+"病娇",
+"病切",
+"弱娇",
+"冰美人",
+"酷娇",
+"率直冷",
+"凛娇",
+"暴娇",
+"郁娇",
+"慵懒",
+"急性子",
+"三无",
+"无口",
+"文静",
+"直率",
+"诚实",
+"刺头",
+"KY",
+"读空气",
+"无铁炮",
+"凶暴",
+"高飞车",
+"高傲",
+"笨蛋",
+"天然呆",
+"天然疯",
+"天然黑",
+"天然萌",
+"认真",
+"电波",
+"冒失",
+"调皮",
+"工口",
+"毒舌",
+"元气",
+"强气",
+"狂气",
+"弱气",
+"怕羞",
+"爱哭鬼",
+"醋缸",
+"好奇",
+"耿直",
+"八卦",
+"变态",
+"变态萌",
+"恶心萌",
+"迟钝",
+"富有正义感",
+"地雷系",
+"博学",
+"情绪化",
+"无感情",
+"自来熟",
+"怕生",
+"怕麻烦",
+"情种",
+"阳角",
+"阴角",
+"多疑",
+"幸灾乐祸",
+"任性",
+"贪玩",
+"暴躁",
+"勇敢",
+"腹黑",
+"腹白",
+"复合型腹黑",
+"可靠",
+"无心",
+"热血",
+"外柔内刚",
+"外热内冷",
+"外冷内热",
+"女王",
+"戏精",
+"猥琐",
+"不懂爱",
+"多重人格",
+"性格切换",
+"无节操",
+"温柔",
+"玻璃心",
+"老好人",
+"优柔寡断",
+"S属性",
+"M属性",
+"支配者",
+"服从者",
+"小恶魔",
+"贱萌",
+"常识人",
+"无常识",
+"坦率",
+"别扭",
+"单纯",
+"清纯",
+"清楚系",
+"孤僻",
+"厌世",
+"护短",
+"闷骚",
+"恋爱脑",
+"酒品差",
+"醉酒变纯情",
+"反社会人格",
+"恶德",
+"不择手段",
+"有原则",
+"执着",
+"固执",
+"偏执",
+"脱线",
+"自负",
+"自卑",
+"谨慎",
+"神经质",
+"大智若愚",
+"自我意识过剩",
+"亦正亦邪",
+"墙头草",
+"欺软怕硬",
+"鬼畜",
+"沉重",
+"老实人",
+"愉悦犯",
+"高攻低防",
+"小天使",
+"和平主义者",
+"节能主义",
+"完美主义者",
+"贪婪",
+"吝啬",
+"野心家",
+"伪阳角",
+"伪阴角",
+"专一",
+"反战",
+"御姐",
+"软妹",
+"熟女",
+"小绿茶"
+],
+"overlap": [
+0.833333333,
+0.0,
+0.0
+],
+"shaping": [
+null,
+null,
+{
+"more": false,
+"name": "小-绿茶",
+"what": "说 她 不好"
+},
+{
+"more": true,
+"name": "御姐",
+"what": "从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容从容"
+},
+null
+],
+"strength": [
+0.198190023,
+0.698170092,
+1.463764572,
+1.99811827
+],
+"strength over months": [
+-0.193869943,
+0.27485413
+],
+"tags": [
+[
+"people=coworker",
+"gender=woman",
+"topic=lunch",
+"event=ate",
+"sender_feels=happy",
+"toward_you=none"
+],
+[
+"topic=rain",
+"topic=bus",
+"event=got",
+"event=wet",
+"sender_feels=tired",
+"toward_you=asking"
+],
+[
+"people=mother",
+"gender=woman",
+"topic=health",
+"event=fell",
+"sender_feels=worried",
+"toward_you=affection"
+]
+],
+"tone": {
+"calm": 0.311155488,
+"happy": 0.197407609,
+"jealous": 0.06315562,
+"sad": 0.03552291,
+"sweet": 0.148153146,
+"tender": 0.171506716,
+"worried": 0.072364654
+},
+"written": [
+{
+"feel": {
+"calm": 0.5,
+"sad": 0.5
+},
+"mood": 2
+},
+null
+]
+}
