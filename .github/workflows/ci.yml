@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  python:
+    name: Against mneme-llm 0.4.0 (Python 3.13)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install mneme-llm==0.4.0
+      - name: The fixtures are what the released package gives
+        run: python tools/fixtures.py --check
+      - name: lib/unicode.js is what Python 3.13's tables give
+        run: python tools/unicode.py --check
+      - name: Every test, with the files both ways
+        run: npm test
+        env:
+          MNEME_LLM_PYTHON: python
+          MNEME_LLM_REQUIRE: "1"

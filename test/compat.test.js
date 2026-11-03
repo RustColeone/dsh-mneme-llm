@@ -1,7 +1,7 @@
 // Files both ways, against Python's mneme-llm itself: a file Python writes is read here as Python reads it, one written
 // here is read by Python as it is read here, and the same operations make the same file row for row. Skipped when
 // Python or the package is not there: set MNEME_LLM_PYTHON to a Python, and PYTHONPATH to a checkout if it is not
-// installed. CI runs these against the released package.
+// installed. CI runs these against the released package, with MNEME_LLM_REQUIRE set so that they cannot skip.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -30,6 +30,7 @@ const probe = spawnSync(PYTHON, ['-c', 'import mneme_llm, unicodedata; print(mne
 const [version, unicode] = probe.status === 0 ? probe.stdout.trim().split(' ') : []
 const skip = probe.status !== 0 ? 'no Python with mneme-llm here (MNEME_LLM_PYTHON, PYTHONPATH)'
   : !version.startsWith('0.4.') ? `mneme-llm ${version} is not 0.4` : false
+if (skip && process.env.MNEME_LLM_REQUIRE) throw new Error(`MNEME_LLM_REQUIRE is set, and ${skip}`) // (CI: never skip)
 const folder = () => fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-compat-'))
 const tool = (name, ...args) => python([path.join(TOOLS, name), ...args])
 
