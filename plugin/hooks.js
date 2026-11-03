@@ -14,12 +14,14 @@ import { Mneme } from '../lib/mneme.js'
 export const HISTORY = 16 // messages of the session her vote and her note see
 const STARTER = fileURLToPath(new URL('../starter.json.gz', import.meta.url))
 
-const textOf = message => (message?.content || []).filter(block => block.type === 'text').map(block => block.text).join('')
+const textOf = message => (message?.content || []).filter(block => block.type === 'text').map(block => block.text)
+  .join('')
 
 function modelOf (agent, config) {
   const header = agent.session?.requestHeader?.()?.config
   if (header?.provider && header?.model) return { provider: header.provider, model: header.model }
-  if (agent.options?.provider && agent.options?.model) return { provider: agent.options.provider, model: agent.options.model }
+  const options = agent.options
+  if (options?.provider && options?.model) return { provider: options.provider, model: options.model }
   return config.provider && config.model ? { provider: config.provider, model: config.model } : null
 }
 
