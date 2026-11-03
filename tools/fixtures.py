@@ -216,7 +216,8 @@ REPLIES = ['{"worth": {"probability": 0.7}}', '{"worth": {"probability": "0.7"}}
            '{"worth": {"probability": -Infinity}}', '{"worth": {}}', '{"worth": {"probability": null}}',
            '{"worth": {"probability": true}}', '{"feeling": {"choice": "none"}}',
            '{"feeling": {"choice": "sad", "confidence": 0.9}}', '{"pick": {"choice": "b", "confidence": 0.1, '
-           '"reason": "because"}}', '{"mood_change": {"level": 1, "confidence": 0.8}}', '{"mood_change": {"level": 1.0}}',
+           '"reason": "because"}}', '{"mood_change": {"level": 1, "confidence": 0.8}}',
+           '{"mood_change": {"level": 1.0}}',
            '{"mood_change": {"level": "-2", "confidence": "high"}}',
            '{"mood_change": {"level": "2", "confidence": 0.95, "reason": 42}}',
            '{"mood_change": {"level": "0", "reason": null}}', '{"mood_change": {"level": "-1", "confidence": 1e-3}}',
@@ -227,7 +228,8 @@ REPLIES = ['{"worth": {"probability": 0.7}}', '{"worth": {"probability": "0.7"}}
            'Sure!\n```json\n{"worth": {"probability": 0.35, "reason": "她说了猫的名字"}, "pick": {"choice": "c"}}\n```',
            '{"pick": {"choice": "a", "confidence": 0.5}, "mood_change": {"level": "1", "confidence": -0.4}}',
            '{"worth": {"probability": "1_0"}}', '{"worth": {"probability": " 0.25 "}}']
-NORMALIZED = [[{"a": 0.2, "b": "0.3"}, ["a", "b", "c"]], [{}, ["x", "y"]], [{"a": -1, "b": None, "c": 0}, ["a", "b", "c"]],
+NORMALIZED = [[{"a": 0.2, "b": "0.3"}, ["a", "b", "c"]], [{}, ["x", "y"]],
+              [{"a": -1, "b": None, "c": 0}, ["a", "b", "c"]],
               [{"a": 1e308, "b": 1e308}, ["a", "b"]], [{"a": 0.1, "b": 0.2, "c": 0.3}, ["c", "b", "a"]],
               [{"b": "", "a": 3}, ["a", "b"]]]
 
@@ -256,7 +258,8 @@ WRITTEN = ['[{"text": "Has a cat", "kind": "fact", "importance": 4}]',
            '[{"text": "Lives here", "kind": "fact", "key": "has space"}, {"text": "Cat", "key": "Pet.Name"}, '
            '{"text": "k", "key": 5}]',
            '[{"text": "a", "importance": "5"}, {"text": "b", "importance": 9}, {"text": "c", "importance": -3}]',
-           '[{"text": "d", "importance": "abc"}, {"text": "e", "importance": 1e999}, {"text": "f", "importance": null}]',
+           '[{"text": "d", "importance": "abc"}, {"text": "e", "importance": 1e999}, '
+           '{"text": "f", "importance": null}]',
            '[{"text": "g", "feeling": "-0.5"}, {"text": "h", "feeling": 3}, {"text": "i", "feeling": NaN}]',
            '[{"text": "j", "gloss": ""}, {"text": "l", "gloss": 5}, {"text": "m", "gloss": "the m"}]',
            '[{"text": ""}, {"text": 5}, {"text": "a\\nb\\tc"}, {"text": "' + "x" * 600 + '"}]',

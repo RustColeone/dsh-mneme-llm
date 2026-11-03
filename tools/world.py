@@ -68,7 +68,8 @@ class World:
 
 def note(note) -> list:
     return [note.id, note.subject, note.text, note.kind, note.key, note.importance, note.feeling, note.happened_at,
-            note.created_at, note.recalls, note.source, note.recalled_at, note.superseded_by, note.deleted_at, note.gloss]
+            note.created_at, note.recalls, note.source, note.recalled_at, note.superseded_by, note.deleted_at,
+            note.gloss]
 
 
 def event(found) -> list | None:
@@ -84,8 +85,8 @@ def recalled(found) -> dict:
 
 def snapshot(m: Mneme) -> dict:
     subjects = m.memory.subjects()
-    keys = {subject: sorted({row["key"] for row in m.store.rows("select key from memories where space = ? and "
-                                                                 "subject = ? and key is not null", (m.space, subject))})
+    keys = {subject: sorted({row["key"] for row in m.store.rows(
+        "select key from memories where space = ? and subject = ? and key is not null", (m.space, subject))})
             for subject in subjects}
     people = sorted({*subjects, *m.episodes.subjects(), *(row["subject"] for row in m.store.rows(
         "select subject from moods where space = ? union select subject from relationships where space = ?",

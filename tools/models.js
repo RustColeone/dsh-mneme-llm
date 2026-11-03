@@ -82,7 +82,9 @@ const translate = user => ENGLISH.filter(([word]) => user.includes(word)).map(([
 export function reply (system, user) {
   if (system.startsWith('You judge')) return judge(user)
   if (system.startsWith('From the exchange below')) return writer(user)
-  if (system.startsWith('Write a short impression')) return `Card ${digest(system) % 1000}: ` + system.split('\n').at(-1)
+  if (system.startsWith('Write a short impression')) {
+    return `Card ${digest(system) % 1000}: ` + system.split('\n').at(-1)
+  }
   if (system.startsWith('Below is the older part')) return `Summary ${digest(system) % 1000}.`
   if (system.startsWith('Rewrite each numbered note')) return glosses(user)
   if (system.startsWith('Translate the text')) return translate(user)

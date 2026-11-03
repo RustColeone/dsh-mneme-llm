@@ -170,7 +170,7 @@ test('talking days in the machine\'s own zone, as TZ sets it', { skip }, () => {
   }
 })
 
-// ---- notes, mood and meaning ------------------------------------------------------------------------------------------
+// ---- notes, mood and meaning ---------------------------------------------------------------------------------------
 const json = value => JSON.parse(JSON.stringify(value)) // (as the other side's JSON reads)
 const rows = file => JSON.parse(tool('world.py', 'dump', file))
 

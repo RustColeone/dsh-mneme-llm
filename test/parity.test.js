@@ -147,11 +147,12 @@ test('the scenario: what Python read from its file, and every row of that file, 
   assert.equal(crypto.createHash('sha256').update(rows).digest('hex'), P.scenario.dump)
 })
 
-// ---- notes, mood and meaning ------------------------------------------------------------------------------------------
+// ---- notes, mood and meaning ---------------------------------------------------------------------------------------
 test('the judge: its message, and what it reads in a reply, label by label', () => {
   const questions = [new Predicate('worth', 'Worth it?'), new Choice('feeling', 'Which feeling?',
     { happy: 'happy (开心)', none: '' }), new Choice('pick', 'Pick one.', ['a', 'b', 'c']),
-  new Score('mood_change', 'How did it move?', [['-2', 'worse'], ['-1', ''], ['0', 'same'], ['1', ''], ['2', 'better']])]
+  new Score('mood_change', 'How did it move?', [['-2', 'worse'], ['-1', ''], ['0', 'same'], ['1', ''],
+    ['2', 'better']])]
   const prompt = new Prompt(null)
   assert.equal(prompt.message('我的猫叫年糕。'.repeat(3000) + 'end', questions), P.decide.message)
   assert.equal(prompt.message('Leo: hi', questions.slice(0, 1)), P.decide.short)
@@ -278,7 +279,9 @@ test('the floor\'s numbers: quantiles, the spread\'s bins and its threshold', ()
 })
 
 test('the tools\' specs, in every style', () => {
-  for (const style of ['openai', 'responses', 'anthropic', 'gemini', 'mcp']) assert.deepEqual(specs(style), P.specs[style])
+  for (const style of ['openai', 'responses', 'anthropic', 'gemini', 'mcp']) {
+    assert.deepEqual(specs(style), P.specs[style])
+  }
   assert.deepEqual(specs('mcp', { prefix: 'memory_', withSubject: true }), P.specs.subject)
 })
 
@@ -297,7 +300,8 @@ function canonical (value) {
 
 const sha = text => crypto.createHash('sha256').update(text).digest('hex')
 
-test('the world: notes, mood, the judge, the writer, meaning, tools, links and moves give what Python gave', async () => {
+test('the world: notes, mood, the judge, the writer, meaning, tools, links and moves give what Python gave',
+  async () => {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-')), file = path.join(folder, 'world.db')
   for (const key of ['ops', 'more']) {
     const { asked, out } = await worlds.play(file, key), wanted = P.world[key]
