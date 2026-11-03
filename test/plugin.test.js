@@ -1,8 +1,8 @@
 // The DSH plugin's hooks, with a stand-in for DeepSeek Harness: the block before her first step (what she keeps of the
-// person, who her owner is, and her gut's line), what she keeps of them in front of a new session after DSH's system
-// prompt, the session log as DSH reads it back, the exchange kept word for word with her mood and notes after the
-// turn, a lesson for her gut, her tools, the commands and their answers in the person's language, people a chat
-// channel brings and her own mention in a group, and turns she starts herself.
+// person, who she is talking with, and her gut's line), what she keeps of them in front of a new session after DSH's
+// system prompt, the session log as DSH reads it back, the exchange kept word for word with her mood and notes after
+// the turn, a lesson for her gut, her tools, the commands and their answers in the person's language, people a chat
+// channel brings, her look in a group and her own mention there, and turns she starts herself.
 //
 // DSH's own reader of a session log checks the log the stand-in writes when DSH's packages are there: installed beside
 // this one, or in the folder DSH_MODULES names (a DSH install's node_modules, say).
@@ -237,7 +237,7 @@ test('what stands for what she let go comes before the newest of what was said, 
   assert.deepEqual([decision.messages[0].content[0].text.split('\n\n')[0], exchanges.length],
     ['Earlier with Leo, in short:\nLeo 养了一只叫年糕的猫。', 2])
   assert.match(said, SAID)
-  assert.match(exchanges[0], /^#2 \[[^\]]+\]\n {2}\(You messaged them on your own then: 现在是晚上十点。\)\n小鲸: 睡了吗？$/)
+  assert.match(exchanges[0], /^#2 \[[^\]]+\]\n小鲸: 睡了吗？$/)
   assert.match(exchanges[1], /^#3 \[[^\]]+\]\nLeo: 年糕今天吐毛球了\n小鲸: 要多梳毛哦。$/)
   h.mneme.close()
   next.mneme.close()
@@ -400,9 +400,11 @@ test('a chat channel\'s people: their words unwrapped, each sender a person, you
   assert.equal(h.mneme.person('qq:10001'), 'owner')
   const other = await turn(h, sent('你好，我是小明', { qq: '20002', nickname: '小明' }), '你好小明！', channel)
   const told = other.messages[0].content[0].text
-  assert.ok(told.startsWith('(小明 is someone you know; you are not close yet. Your owner is Leo.)\n\n'), told)
+  assert.ok(told.startsWith('(You\'re talking with 小明, someone you know; you are not close yet.)\n\n'), told)
+  assert.ok(!told.includes('owner') && !told.includes('Leo'), told)
   const mine = await turn(h, sent('我回来了'), '欢迎回来！', channel)
-  assert.ok(!mine.messages[0].content[0].text.includes('owner'), 'to you she needs no telling')
+  assert.ok(mine.messages[0].content[0].text.startsWith('(Leo is family to you; you are very close.)'),
+    'to you she needs no telling')
   assert.deepEqual(h.mneme.episodes.after('qq:20002', 0).map(item => item.lines), [[['小明', '你好，我是小明'],
     ['小鲸', '你好小明！']]])
   assert.equal(h.mneme.relations.get('qq:20002').role, 'acquaintance')
@@ -416,16 +418,51 @@ test('a chat channel\'s people: their words unwrapped, each sender a person, you
   again.mneme.close()
 })
 
-test('the owner named in Chinese, in the line or alone', async () => {
+test('who she is talking with, in Chinese, and with someone who has no role', async () => {
   const h = harness({ folder: folder(), user: 'Leo', gut: false })
   h.mneme.relations.displayLanguage = 'zh'
   const told = async (said, who) => (await turn(h, sent(said, who), '好', channel)).messages[0].content[0].text
-  assert.ok((await told('你好', { qq: '20002', nickname: '小明' })).startsWith('（小明是你认识的人，你们还不太熟。你的主人是Leo。）'))
+  const line = await told('你好', { qq: '20002', nickname: '小明' })
+  assert.ok(line.startsWith('（你在和小明说话：你认识的人，你们还不太熟。）') && !line.includes('主人'), line)
   h.mneme.close()
   const alone = harness({ folder: folder(), user: 'Leo', gut: false, others: '' })
   const block = (await turn(alone, sent('你好', { qq: '20003', nickname: '小红' }), '好', channel)).messages[0]
-  assert.ok(block.content[0].text.startsWith('(Your owner is Leo.)'), block.content[0].text)
+  assert.ok(block.content[0].text.startsWith('(You\'re talking with 小红.)'), block.content[0].text)
   alone.mneme.close()
+})
+
+test('in a group: who she is talking with, by name, and her look at what they said with her and what was said ' +
+  'there, never at someone else\'s private chats', async () => {
+  const where = folder(), setup = { folder: where, companion: '大肥鱼', user: 'Leo', role: 'family',
+    accounts: ['qq:10001'], gut: false }
+  const chat = id => {
+    const h = harness(setup)
+    h.session.id = id // (each chat a channel brings is a session of its own)
+    return h
+  }
+  const yours = chat('onebot-private-10001'), hers = chat('onebot-private-10002'), group = chat('onebot-group-30001')
+  const inGroup = (said, qq, nickname) => sent(said, { qq, nickname, before: `[21:05 ${nickname}(${qq})] ` })
+  await turn(yours, sent('我的猫年糕最近总吐毛球'), '主人，年糕要多梳毛咕噜。', channel)
+  await turn(hers, sent('我的猫芝麻也吐毛球', { qq: '10002', nickname: '小美' }), '芝麻也要梳毛呀。', channel)
+  await turn(group, inGroup('我家的猫也吐毛球', '10003', '阿强'), '那要勤梳毛。', channel)
+  await turn(group, inGroup('大家的猫都吐毛球吗', '10001', 'Leo'), '主人，好像是的咕噜。', channel)
+  const block = (await turn(group, inGroup('猫吐毛球怎么办？', '10002', '小美'), '多梳毛。', channel)).messages[0]
+    .content[0].text
+  assert.ok(block.startsWith('(You\'re talking with 小美, someone you know; you are not close yet.)\n\n') &&
+    !block.includes('owner'), block)
+  assert.ok(block.includes('Said before with 小美, and with others in this group:'), block)
+  assert.ok(block.includes('小美: 我的猫芝麻也吐毛球'), 'what she said with her, in any chat')
+  assert.ok(block.includes('阿强: 我家的猫也吐毛球') && block.includes('Leo: 大家的猫都吐毛球吗'), 'what was said there')
+  assert.ok(!block.includes('年糕'), 'not what you said with her in private')
+  const inPrivate = (await turn(hers, sent('猫吐毛球怎么办？', { qq: '10002', nickname: '小美' }), '多梳毛。', channel))
+    .messages[0].content[0].text
+  assert.ok(inPrivate.includes('小美: 我的猫芝麻也吐毛球') && !inPrivate.includes('阿强') && !inPrivate.includes('年糕'),
+    'in a private chat her look is theirs alone, as before')
+  const yourTurn = (await turn(group, inGroup('年糕还在吐毛球', '10001', 'Leo'), '主人，多梳毛咕噜。', channel))
+    .messages[0].content[0].text
+  assert.ok(yourTurn.startsWith('(Leo is family to you; you are very close.)') && yourTurn.includes('Leo: 我的猫年糕'),
+    'with you in the group, what you said with her anywhere')
+  for (const h of [yours, hers, group]) h.mneme.close()
 })
 
 test('in a group her own mention is not what they said: known once it has opened two messages, and kept', async () => {
@@ -477,11 +514,37 @@ test('a turn she starts herself: kept as hers, her mood judged, and no notes fro
   const before = h.asked.length
   await turn(h, '现在是晚上十点，想想要不要主动找对方聊聊。', '小明，睡了吗？', { kind: 'speak-up' })
   await until(() => h.mneme.episodes.count('qq:20002') === 2 && h.asked.length > before)
-  assert.deepEqual(h.mneme.episodes.after('qq:20002', 0)[0].lines, [['', '(You messaged them on your own then: ' +
-    '现在是晚上十点，想想要不要主动找对方聊聊。)'], ['小鲸', '小明，睡了吗？']])
+  assert.deepEqual(h.mneme.episodes.after('qq:20002', 0)[0].lines, [['小鲸', '小明，睡了吗？']])
   await new Promise(resolve => setTimeout(resolve, 100))
   assert.ok(h.asked.slice(before).some(request => request.system?.startsWith('You judge')))
   assert.ok(!h.asked.slice(before).some(request => request.system?.startsWith('From the exchange below')))
+  h.mneme.close()
+})
+
+test('a turn she starts herself keeps nothing of what started it: another plugin\'s words to her, not part of the ' +
+  'conversation', async () => {
+  const h = harness({ folder: folder(), companion: '大肥鱼', user: 'Leo', gut: false })
+  await turn(h, '我周四要去看牙医，好怕疼', '主人别怕嘛咕噜。')
+  await until(() => h.mneme.memory.notes('owner').length === 1)
+  const before = h.asked.length
+  const trigger = '（下面这句是**你自己心里冒出来的念头**，不是对方说的话；顺着它去做就行，别把它当成对方发来的消息、也不用' +
+    '回应它。）\n（现在这会儿是 11 月 3 日 周二 凌晨 2:43，按这个点来想事、说话。）\n好久没人跟我说话了，我该主动去打个招呼'
+  await turn(h, trigger, '主人还在吗咕噜？', { kind: 'speak-up' })
+  const judge = () => h.asked.slice(before).find(request => request.system?.startsWith('You judge'))
+  await until(() => judge())
+  assert.deepEqual(h.mneme.episodes.after('owner', 0).toReversed().map(item => item.lines), [[['Leo', '我周四要去看牙医，好怕疼'],
+    ['大肥鱼', '主人别怕嘛咕噜。']], [['大肥鱼', '主人还在吗咕噜？']]], 'her message alone, the first thing said')
+  assert.equal(judge().messages[0].content[0].text.split('\n\nQUESTIONS:')[0], 'TEXT:\n[大肥鱼 reached out to Leo on ' +
+    'their own, because they wanted to (not as a task). The assistant is 大肥鱼; the user is Leo.]\n大肥鱼: 主人还在吗咕噜？')
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.deepEqual(h.mneme.store.rows('select source from mood_events order by id').map(row => row.source),
+    ['user', 'speak-up'], 'her mood follows')
+  await turn(h, '在呢在呢，刚才在忙', '忙完啦咕噜？')
+  const tables = h.mneme.store.rows('select name from sqlite_master where type = \'table\'').map(row => row.name)
+  const file = JSON.stringify(tables.map(table => h.mneme.store.rows(`select * from ${table}`)))
+  for (const words of ['念头', '对方发来的消息', '凌晨 2:43', '好久没人跟我说话了', '打个招呼']) {
+    assert.ok(!file.includes(words), `${words} is kept`)
+  }
   h.mneme.close()
 })
 
