@@ -380,7 +380,7 @@ when `OPENAI_API_KEY` is set. Otherwise, they use words alone.
 
 ## Works with the Python package too
 
-The library and the Python package [mneme-llm](https://github.com/RustColeone/mneme-llm) 0.5.0 use the same file format.
+The library and the Python package [mneme-llm](https://github.com/RustColeone/mneme-llm) (0.5.0 and later) use the same file format.
 A Python program and this one can open the same file, one after the other. Each can read and add to what the other
 wrote. The command line takes the same commands and prints the same output.
 
@@ -403,7 +403,7 @@ The tests need no network and no key. Rules stand in for the models and embedder
 what the Python package returns for the same inputs: text, dates, the config, the gut, a scenario and a world of
 operations, the command line and the MCP server. The normal test run checks against that file, so it needs no Python.
 With Python installed, the same operations must also produce the same file, row for row, in both directions.
-CI runs on Node 22 and 24, and once more against mneme-llm 0.5.0 from PyPI.
+CI runs on Node 22 and 24, and once more against the Python package mneme-llm at the matching commit.
 
 ## License
 

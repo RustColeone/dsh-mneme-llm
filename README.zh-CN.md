@@ -274,7 +274,7 @@ dsh-mneme-llm gut side 病娇 --lock --often 0.5 --what "你离不开对方…�
 
 ## 也能和 Python 包一起用
 
-两边用的是同一种文件，就是 Python 包 [mneme-llm](https://github.com/RustColeone/mneme-llm) 0.5.0 用的那个。Python 程序和这个程序可以先后打开同一个文件，读到对方写过的东西，也能接着往里写。命令行的命令和输出也一样。
+两边用的是同一种文件，就是 Python 包 [mneme-llm](https://github.com/RustColeone/mneme-llm)（0.5.0 及以后）用的那个。Python 程序和这个程序可以先后打开同一个文件，读到对方写过的东西，也能接着往里写。命令行的命令和输出也一样。
 
 不过，少数数值还是会有一点差别。淡忘或排序的数值，大约两千个里有一个会差在最后一个二进制位上（这边的 `exp` 和 `log` 是正确舍入的）；直觉的权重相差约万亿分之一；向量相似度和用了 numpy 的 Python 相比，相差约千万分之一。文字按 Python 3.13 的 Unicode 表切分，时区则用 Node 自带的数据。细节见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -287,7 +287,7 @@ python3 tools/fixtures.py                  # 用那份 mneme-llm 重新生成 te
 python3 tools/unicode.py                   # 用 Python 3.13 的表重新生成 lib/unicode.js
 ```
 
-测试不用联网，也不用密钥。测试用按规则工作的模型和向量模型代替真的模型。`test/fixtures/parity.json` 里存着 Python 包对同样输入给出的结果，包括文字、日期、配置、直觉、一个场景和一组操作、命令行和 MCP 服务器，平时没有 Python 也能拿来对照。有 Python 时，两边还得执行同样的操作，生成一模一样的文件，再逐行对照，两个方向都要检查。CI 会在 Node 22 和 24 上跑测试，再和 PyPI 上的 mneme-llm 0.5.0 对照跑一遍。
+测试不用联网，也不用密钥。测试用按规则工作的模型和向量模型代替真的模型。`test/fixtures/parity.json` 里存着 Python 包对同样输入给出的结果，包括文字、日期、配置、直觉、一个场景和一组操作、命令行和 MCP 服务器，平时没有 Python 也能拿来对照。有 Python 时，两边还得执行同样的操作，生成一模一样的文件，再逐行对照，两个方向都要检查。CI 会在 Node 22 和 24 上跑测试，再和对应提交的 Python 包 mneme-llm 对照跑一遍。
 
 ## 许可证
 
