@@ -157,7 +157,8 @@ export function senderOf (message) {
 }
 
 /** Her memory file and her gut, opened from the plugin's settings (see README.md), in DSH's `home` folder. Her word
- * habits are in her line only with the people close enough to teach her gut. */
+ * habits are in her line only with the people close enough to teach her gut. `tau` is for a gut with no settings of its
+ * own (see `wake`). */
 export function open (config = {}, home) {
   const name = config.name || 'default'
   const folder = config.folder || path.join(home, 'mneme-llm', name)
@@ -173,13 +174,17 @@ export function open (config = {}, home) {
   return { mneme, gut, folder }
 }
 
-/** Her gut awake, with the plugin's `sensitivity` (敏感 1 to 钝感 -1) when it gives one. */
+/** Her gut awake. The plugin's `sensitivity` (敏感 1 to 钝感 -1), like its `tau`, starts a gut that has no settings of
+ * its own yet; once they are changed (on the plugin's page in DSH, say), her gut keeps them and they are the latest
+ * word. */
 export function wake (gut, config = {}) {
   if (gut.awake) return
   gut.wake()
   const sensitivity = config.sensitivity === undefined || config.sensitivity === null || config.sensitivity === ''
     ? null : Number(config.sensitivity)
-  if (sensitivity !== null && sensitivity !== gut.settings.sensitivity) gut.configure({ sensitivity })
+  if (sensitivity === null || gut._get('settings')) return // (settings of her own)
+  if (!(sensitivity >= -1 && sensitivity <= 1)) throw new py.ValueError('sensitivity is from -1 (钝感) to 1 (敏感)')
+  gut.settings.sensitivity = sensitivity
 }
 
 export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest = null, home }) {

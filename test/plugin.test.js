@@ -587,3 +587,26 @@ test('her gut from the plugin\'s settings: her zone, how fast she grows up, and 
   gut.close()
   mneme.close()
 })
+
+test('the plugin\'s tau and sensitivity start a gut with no settings of its own; changed, hers are the latest word',
+  () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-dsh-'))
+    const started = (config, then = () => {}) => {
+      const { mneme, gut } = open({ name: 'xiaojing', ...config }, home)
+      wake(gut, config)
+      const settings = [gut.settings.tau, gut.net.tau, gut.settings.sensitivity]
+      then(gut)
+      gut.close()
+      mneme.close()
+      return settings
+    }
+    assert.deepEqual(started({ tau: 300, sensitivity: 0.5 }), [300, 300, 0.5])
+    assert.deepEqual(started({ tau: 400, sensitivity: -0.5 }, gut => gut.configure({ sensitivity: 0.2 })),
+      [400, 400, -0.5]) // (nothing of her own yet: the plugin's again; then changed, as the settings page does)
+    assert.deepEqual(started({ tau: 300, sensitivity: 0.9 }), [400, 400, 0.2])
+    assert.deepEqual(started({}), [400, 400, 0.2])
+    const { mneme, gut } = open({ name: 'other' }, home)
+    assert.throws(() => wake(gut, { sensitivity: 2 }), /sensitivity/)
+    gut.close()
+    mneme.close()
+  })
