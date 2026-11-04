@@ -112,28 +112,33 @@ window.__ModuleLoader__.load({
       'people.weight': 'theirs',
       'people.lock': 'Lock how she is with them: what they say teaches nothing, and they do not fade',
       'people.tunes': 'Each feeling, with them alone',
-      'people.tunesHint': 'A nudge to each feeling with this person only, on top of her nature (-3 to 3; 0 removes it).',
+      'people.tunesHint': 'A nudge to each feeling with this person only, on top of her nature (-3 to 3; 0 ' +
+        'removes it).',
       'people.forget': 'Forget them',
       'people.forgetConfirm': 'Forget {who}? How she is with them goes, and so do the sides only they wanted. What ' +
         'they did to her heart stays.',
       'people.forgotten': 'Forgotten when you save',
       'people.undo': 'Keep',
       'sides.title': 'Her sides',
-      'sides.hint': 'A side is a name and one sentence of what she does. A locked side holds for everyone, whatever is ' +
-        'drawn and however long; how often is how strongly it shows.',
+      'sides.hint': 'A side is a name and one sentence of what she does. A locked side holds for everyone, whatever ' +
+        'is drawn and however long; how often is how strongly it shows.',
       'sides.none': 'No sides yet.',
       'sides.given': 'given in the configuration',
       'sides.weight': 'weight when drawn',
-      'sides.drop': 'Drop',
-      'sides.dropped': 'Dropped when you save',
-      'sides.lock': 'Locked side',
-      'sides.drawn': 'None: drawn by weight',
+      'sides.drop': 'Remove',
+      'sides.dropped': 'Removed when you save',
       'sides.often': 'how often',
       'sides.oftenHint': 'The share of her turns the sentence goes beside the message: 1 is every turn.',
-      'sides.add': 'A new side',
       'sides.pick': 'Choose a name',
       'sides.what': 'What she does, said to her ("You…")',
-      'sides.write': 'Add'
+      'sides.write': 'Add',
+      'sides.locked': 'locked',
+      'role.creator': 'creator',
+      'role.family': 'family',
+      'role.friend': 'friend',
+      'role.acquaintance': 'acquaintance',
+      'sides.lockThis': 'Lock her in this side',
+      'sides.needsWhat': 'Write what she does before saving.'
     }
     const ZH = {
       ...EN,
@@ -214,14 +219,18 @@ window.__ModuleLoader__.load({
       'sides.weight': '抽到时的权重',
       'sides.drop': '去掉',
       'sides.dropped': '保存后去掉',
-      'sides.lock': '锁住的属性',
-      'sides.drawn': '无：按权重抽',
       'sides.often': '出现频率',
       'sides.oftenHint': '她的回合中，这句做法附在消息旁的比例：1 表示每个回合。',
-      'sides.add': '新建属性',
       'sides.pick': '选择一个名字',
       'sides.what': '她的做法，用对她说的话来写（你……）',
-      'sides.write': '添加'
+      'sides.write': '添加',
+      'sides.locked': '已锁住',
+      'role.creator': '创造者',
+      'role.family': '家人',
+      'role.friend': '朋友',
+      'role.acquaintance': '认识的人',
+      'sides.lockThis': '把她锁在这一面',
+      'sides.needsWhat': '保存前写下她的做法。'
     }
 
     /** `{name}` in a sentence filled in. */
@@ -281,6 +290,11 @@ window.__ModuleLoader__.load({
     const chinese = t => String(t('lang')).startsWith('zh')
     const endName = (t, view, end) => chinese(t) ? view.ends?.find(item => item.end === end)?.zh ?? end : end
     const barName = (t, bar) => chinese(t) ? bar.zh : bar.bar
+    /** A role's name in the page's language; a host's own role by its key. */
+    const roleName = (t, role) => {
+      const name = t(`role.${role}`)
+      return name === `role.${role}` ? role : name
+    }
 
     /** The base radius of the star map: as big as fits, with each end's name at its arm's tip, read outward. */
     function baseRadius (half, arms, widths, gap = 0.12) {
@@ -575,16 +589,18 @@ window.__ModuleLoader__.load({
     }
 
     /** A slider with its number. */
-    function Slider ({ value, low, high, step, onChange, label, changed, wide = false }) {
+    function Slider ({ value, low, high, step, onChange, label, changed, wide = false, plain = false }) {
       return h('label', { className: ['mnl-slider', wide ? 'mnl-wide' : '', changed ? 'mnl-changed' : '']
         .filter(Boolean).join(' ') },
         h('span', { className: 'mnl-dim' }, label),
         h('input', { type: 'range', min: low, max: high, step, value,
           onChange: event => onChange(Number(event.target.value)) }),
-        h('span', { className: 'mnl-number' }, step >= 1 ? fixed(value, 0) : signed(value, step < 0.1 ? 2 : 1)))
+        h('span', { className: 'mnl-number' }, step >= 1 ? fixed(value, 0)
+          : plain ? fixed(value, 2) : signed(value, step < 0.1 ? 2 : 1)))
     }
 
     const EMPTY = () => ({ tune: {}, people: {}, sides: {} })
+    const GROWS = 6.0 // a new side's weight when drawn, as lib/gut.js gives it (the bundle cannot import it)
 
     /** What a draft changes: one for each value staged. */
     function counted (draft, view) {
@@ -610,130 +626,216 @@ window.__ModuleLoader__.load({
       const people = Object.entries(draft.people).map(([subject, item]) => ({ subject, ...item,
         tune: Object.entries(item.tune || {}).map(([end, nature]) => ({ end, nature })) }))
       if (people.length) asked.people = people
-      const sides = Object.entries(draft.sides).map(([name, item]) => ({ name, ...item }))
+      const sides = Object.entries(draft.sides).map(([name, { fresh, ...item }]) => ({ name, ...item }))
       if (sides.length) asked.sides = sides
       if (draft.side !== undefined) asked.side = draft.side
       return asked
     }
 
-    /** One person she knows, by hand: closeness and its lock, how much theirs counts, a lock, a nudge to each feeling
-     * with them alone, and forgetting them. */
-    function Person ({ person, view, draft, stage, dark, t }) {
+    /** A list to choose one from: rows, and the names of groups between them. */
+    function Choices ({ items, chosen, onChoose, label }) {
+      return h('div', { className: 'mnl-list', role: 'listbox', 'aria-label': label },
+        items.map(item => item.group !== undefined
+          ? h('div', { key: item.key, className: 'mnl-list-group', role: 'presentation' }, item.group)
+          : h('button', { key: item.key, type: 'button', role: 'option', 'aria-selected': item.key === chosen,
+            className: ['mnl-option', item.key === chosen ? 'mnl-chosen' : '', item.changed ? 'mnl-changed' : '',
+              item.gone ? 'mnl-gone' : ''].filter(Boolean).join(' '), onClick: () => onChoose(item.key) },
+          item.swatch ? h('span', { className: 'mnl-swatch', style: { background: item.swatch } }) : null,
+          h('span', { className: 'mnl-option-name' }, item.name),
+          item.note ? h('span', { className: 'mnl-dim mnl-option-note' }, item.note) : null)))
+    }
+
+    /** One end chosen from her 24, grouped by bar, as a drop-down. */
+    function EndSelect ({ view, value, onChange, t, label }) {
+      return h('select', { className: 'mnl-select', value, 'aria-label': label,
+        onChange: event => onChange(event.target.value) },
+      view.bars.map(bar => h('optgroup', { key: bar.bar, label: barName(t, bar) },
+        bar.ends.filter(Boolean).map(end => h('option', { key: end, value: end }, endName(t, view, end))))))
+    }
+
+    /** Her 24 feelings: a list grouped by bar, and the chosen one's nature and now. */
+    function Feelings ({ view, draft, stage, dark, t }) {
+      const [chosen, choose] = useState(view.ends[0]?.end)
+      const tuneOf = end => ({ ...view.ends.find(item => item.end === end), ...draft.tune[end] })
+      const retune = (what, value) => stage(old => ({ ...old, tune: { ...old.tune,
+        [chosen]: { ...old.tune[chosen], [what]: value } } }))
+      const items = view.bars.flatMap(bar => [{ key: `bar:${bar.bar}`, group: barName(t, bar) },
+        ...bar.ends.filter(Boolean).map(end => {
+          const tune = tuneOf(end)
+          return { key: end, name: endName(t, view, end), swatch: endColour(view.bars, end, dark),
+            changed: Boolean(draft.tune[end]), note: [tune.nature ? signed(tune.nature, 1) : '',
+              tune.now ? signed(tune.now) : ''].filter(Boolean).join(' · ') }
+        })])
+      const tune = tuneOf(chosen), changed = draft.tune[chosen] || {}
+      const bar = view.bars.find(item => item.ends.includes(chosen))
+      return h('section', { className: 'mnl-card' },
+        h('div', { className: 'mnl-subtitle' }, t('settings.tunes')),
+        h('div', { className: 'mnl-dim' }, t('settings.tunesHint')),
+        h('div', { className: 'mnl-split' },
+          h(Choices, { items, chosen, onChoose: choose, label: t('settings.tunes') }),
+          h('div', { className: 'mnl-edit' },
+            h('div', { className: 'mnl-edit-title' },
+              h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, chosen, dark) } }),
+              endName(t, view, chosen), bar ? h('span', { className: 'mnl-dim' }, barName(t, bar)) : null),
+            h(Slider, { label: t('settings.nature'), value: tune.nature, low: -3, high: 3, step: 0.1,
+              changed: changed.nature !== undefined, onChange: value => retune('nature', value) }),
+            h(Slider, { label: t('settings.now'), value: tune.now, low: -1, high: 1, step: 0.05,
+              changed: changed.now !== undefined, onChange: value => retune('now', value) }))))
+    }
+
+    /** The people she knows: a list, and the chosen one's closeness and its lock, how much theirs counts, a lock, a
+     * nudge to each feeling with them alone, and forgetting them. */
+    function People ({ view, draft, stage, dark, t }) {
+      const [chosen, choose] = useState(view.people[0]?.subject ?? null)
+      const [end, setEnd] = useState(view.ends[0]?.end)
+      if (!view.people.length) {
+        return h('section', { className: 'mnl-card' }, h('div', { className: 'mnl-subtitle' }, t('people.title')),
+          h('div', { className: 'mnl-dim' }, t('people.none')))
+      }
+      const person = view.people.find(item => item.subject === chosen) || view.people[0]
+      const whoOf = item => item.subject === view.you ? t('you') : item.subject
+      const items = view.people.map(item => {
+        const staged = draft.people[item.subject] || {}
+        return { key: item.subject, name: whoOf(item), changed: Boolean(draft.people[item.subject]),
+          gone: staged.forget,
+          note: item.closeness ? fixed(staged.closeness ?? item.closeness.value, 0) : '' }
+      })
       const staged = draft.people[person.subject] || {}
-      const who = person.subject === view.you ? t('you') : person.subject
       const close = person.closeness, value = (key, fallback) => staged[key] !== undefined ? staged[key] : fallback
       const set = (key, item) => stage(old => ({ ...old, people: { ...old.people,
         [person.subject]: { ...(old.people[person.subject] || {}), [key]: item } } }))
       const weight = value('weight', person.set ?? 'learned'), byHand = weight !== 'learned'
-      const nudge = end => staged.tune?.[end] ?? person.nudge[end] ?? 0
-      const nudged = (end, nature) => set('tune', { ...(staged.tune || {}), [end]: nature })
+      const nudge = name => staged.tune?.[name] ?? person.nudge[name] ?? 0
+      const nudged = view.ends.map(item => item.end).filter(name => nudge(name))
       const forgetting = staged.forget === true
-      return h('details', { className: 'mnl-group mnl-who-card' },
-        h('summary', null, h('span', { className: 'mnl-who-name' }, who), ' ',
-          h('span', { className: 'mnl-dim' }, t('people.summary', { lessons: person.lessons,
-            weight: percent(person.weight) }) + (close ? ` · ${fixed(close.value, 0)}` : ''))),
-        forgetting ? h('div', { className: 'mnl-row' }, h('span', { className: 'mnl-changed' }, t('people.forgotten')),
-          h('button', { type: 'button', className: 'mnl-button', onClick: () => set('forget', undefined) },
-            t('people.undo'))) : null,
-        close ? h('div', { className: 'mnl-stack' },
-          h(Slider, { label: t('people.closeness', { role: close.role, floor: close.floor, ceiling: close.ceiling }),
-            value: value('closeness', close.value), low: close.floor, high: close.ceiling, step: 1,
-            changed: staged.closeness !== undefined, onChange: item => set('closeness', item), wide: true }),
-          h('label', { className: staged.hold !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
-            h('input', { type: 'checkbox', checked: value('hold', close.locked),
-              onChange: event => set('hold', event.target.checked) }), t('people.holdCloseness')))
-          : h('div', { className: 'mnl-dim' }, t('people.noRole')),
-        h('label', { className: staged.weight !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
-          h('input', { type: 'checkbox', checked: byHand,
-            onChange: event => set('weight', event.target.checked ? Number(fixed(person.weight)) : 'learned') }),
-          t('people.byHand')),
-        byHand ? h(Slider, { label: t('people.weight'), value: weight, low: 0, high: 1, step: 0.05,
-          changed: staged.weight !== undefined, onChange: item => set('weight', item) }) : null,
-        h('label', { className: staged.locked !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
-          h('input', { type: 'checkbox', checked: value('locked', person.locked),
-            onChange: event => set('locked', event.target.checked) }), t('people.lock')),
-        h('details', { className: 'mnl-inner' },
-          h('summary', null, t('people.tunes')),
-          h('div', { className: 'mnl-dim' }, t('people.tunesHint')),
-          h('div', { className: 'mnl-tunes' }, view.bars.map(bar => h('div', { key: bar.bar, className: 'mnl-group' },
-            h('div', { className: 'mnl-group-title' }, barName(t, bar)),
-            bar.ends.filter(Boolean).map(end => h('div', { key: end, className: 'mnl-tune' },
-              h('div', { className: 'mnl-tune-name' },
+      return h('section', { className: 'mnl-card' },
+        h('div', { className: 'mnl-subtitle' }, t('people.title')),
+        h('div', { className: 'mnl-dim' }, t('people.hint')),
+        h('div', { className: 'mnl-split' },
+          h(Choices, { items, chosen: person.subject, onChoose: choose, label: t('people.title') }),
+          h('div', { className: 'mnl-edit', key: person.subject },
+            h('div', { className: 'mnl-edit-title' }, whoOf(person),
+              h('span', { className: 'mnl-dim' }, t('people.summary', { lessons: person.lessons,
+                weight: percent(person.weight) }))),
+            forgetting ? h('div', { className: 'mnl-row' },
+              h('span', { className: 'mnl-changed' }, t('people.forgotten')),
+              h('button', { type: 'button', className: 'mnl-button', onClick: () => set('forget', undefined) },
+                t('people.undo'))) : null,
+            close ? h('div', { className: 'mnl-stack' },
+              h(Slider, { label: t('people.closeness', { role: roleName(t, close.role), floor: close.floor,
+                ceiling: close.ceiling }),
+                value: value('closeness', close.value), low: close.floor, high: close.ceiling, step: 1,
+                changed: staged.closeness !== undefined, onChange: item => set('closeness', item), wide: true }),
+              h('label', { className: staged.hold !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
+                h('input', { type: 'checkbox', checked: value('hold', close.locked),
+                  onChange: event => set('hold', event.target.checked) }), t('people.holdCloseness')))
+              : h('div', { className: 'mnl-dim' }, t('people.noRole')),
+            h('label', { className: staged.weight !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
+              h('input', { type: 'checkbox', checked: byHand,
+                onChange: event => set('weight', event.target.checked ? Number(fixed(person.weight)) : 'learned') }),
+              t('people.byHand')),
+            byHand ? h(Slider, { label: t('people.weight'), value: weight, low: 0, high: 1, step: 0.05, plain: true,
+              wide: true,
+              changed: staged.weight !== undefined, onChange: item => set('weight', item) }) : null,
+            h('label', { className: staged.locked !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
+              h('input', { type: 'checkbox', checked: value('locked', person.locked),
+                onChange: event => set('locked', event.target.checked) }), t('people.lock')),
+            h('div', { className: 'mnl-inner' },
+              h('div', { className: 'mnl-group-title' }, t('people.tunes')),
+              h('div', { className: 'mnl-dim' }, t('people.tunesHint')),
+              h('div', { className: 'mnl-row' },
                 h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, end, dark) } }),
-                endName(t, view, end)),
+                h(EndSelect, { view, value: end, onChange: setEnd, t, label: t('people.tunes') })),
               h(Slider, { label: t('settings.nature'), value: nudge(end), low: -3, high: 3, step: 0.1,
-                changed: staged.tune?.[end] !== undefined, onChange: item => nudged(end, item) }))))))),
-        forgetting ? null : h('div', { className: 'mnl-row' }, h('button', { type: 'button', className: 'mnl-button',
-          onClick: () => { if (window.confirm(t('people.forgetConfirm', { who }))) set('forget', true) } },
-        t('people.forget'))))
+                changed: staged.tune?.[end] !== undefined,
+                onChange: item => set('tune', { ...(staged.tune || {}), [end]: item }) }),
+              nudged.length ? h('div', { className: 'mnl-tags' }, nudged.map(name => h('button', { key: name,
+                type: 'button', className: name === end ? 'mnl-tag mnl-small-tag mnl-chosen' : 'mnl-tag mnl-small-tag',
+                onClick: () => setEnd(name) }, `${endName(t, view, name)} ${signed(nudge(name), 1)}`))) : null),
+            forgetting ? null : h('div', { className: 'mnl-row' }, h('button', { type: 'button',
+              className: 'mnl-button', onClick: () => {
+                if (window.confirm(t('people.forgetConfirm', { who: whoOf(person) }))) set('forget', true)
+              } }, t('people.forget'))))))
     }
 
-    /** Her sides: each sentence and weight, dropping one, the side locked and how often it shows, and a new one. */
+    /** Her sides (属性) as tags: add one by name, remove the chosen one, and below, the chosen one's sentence, weight,
+     * and whether she is locked in it and how often it shows. */
     function Sides ({ view, draft, stage, t }) {
-      const [fresh, setFresh] = useState({ name: '', what: '' })
+      const locked = draft.side !== undefined ? draft.side : view.side
+      const [chosen, choose] = useState(locked?.name ?? view.sides[0]?.name ?? null)
+      const [adding, setAdding] = useState('')
       const staged = name => draft.sides[name] || {}
       const set = (name, key, item) => stage(old => ({ ...old, sides: { ...old.sides,
         [name]: { ...(old.sides[name] || {}), [key]: item } } }))
-      const undo = name => stage(old => {
+      const unstage = name => stage(old => {
         const sides = { ...old.sides }
         delete sides[name]
         return { ...old, sides }
       })
-      const added = Object.entries(draft.sides).filter(([name, item]) => item.what && !view.sides.some(side =>
-        side.name === name)).map(([name, item]) => ({ name, what: item.what, given: false, own: 0, weight: 0, fresh: true }))
+      const lock = next => stage(old => {
+        const same = JSON.stringify(next) === JSON.stringify(view.side)
+        const { side, ...rest } = old
+        return same ? rest : { ...rest, side: next }
+      })
+      const added = Object.entries(draft.sides).filter(([name, item]) => item.fresh && !view.sides.some(side =>
+        side.name === name)).map(([name]) => ({ name, what: '', given: false, own: GROWS, fresh: true }))
       const sides = [...view.sides, ...added]
-      const locked = draft.side !== undefined ? draft.side : view.side
-      const lock = (name, often) => stage(old => ({ ...old, side: name ? { name, often } : null }))
-      const free = view.names.filter(name => !sides.some(side => side.name === name))
+      const side = sides.find(item => item.name === chosen) || null
+      const free = view.names.filter(name => !sides.some(item => item.name === name))
+      const add = () => {
+        set(adding, 'fresh', true)
+        choose(adding)
+        setAdding('')
+      }
+      const remove = () => {
+        if (!side || side.given) return
+        if (side.fresh) {
+          unstage(side.name)
+          if (locked?.name === side.name) lock(view.side)
+        } else if (staged(side.name).drop) unstage(side.name)
+        else set(side.name, 'drop', true)
+      }
+      const mine = side ? staged(side.name) : {}, dropping = mine.drop === true
+      const isLocked = Boolean(side && locked?.name === side.name)
       return h('section', { className: 'mnl-card' },
         h('div', { className: 'mnl-subtitle' }, t('sides.title')),
         h('div', { className: 'mnl-dim' }, t('sides.hint')),
-        sides.length ? null : h('div', { className: 'mnl-dim' }, t('sides.none')),
-        sides.map(side => {
-          const mine = staged(side.name), dropping = mine.drop === true
-          return h('div', { key: side.name, className: 'mnl-group' },
-            h('div', { className: 'mnl-row' }, h('span', { className: 'mnl-group-title' }, side.name),
-              side.given ? h('span', { className: 'mnl-dim' }, t('sides.given')) : null,
-              h('span', { className: 'mnl-spacer' }),
-              side.given || side.fresh ? null : dropping
-                ? h('button', { type: 'button', className: 'mnl-button', onClick: () => undo(side.name) },
-                  t('people.undo'))
-                : h('button', { type: 'button', className: 'mnl-button', onClick: () => set(side.name, 'drop', true) },
-                  t('sides.drop'))),
-            dropping ? h('span', { className: 'mnl-changed' }, t('sides.dropped')) : side.given
-              ? h('div', null, side.what)
-              : h('textarea', { className: mine.what !== undefined ? 'mnl-text mnl-changed' : 'mnl-text', rows: 2,
-                maxLength: 200, value: mine.what ?? side.what, onChange: event => set(side.name, 'what', event.target.value) }),
-            dropping || side.given ? null : h('label', { className: 'mnl-field' },
-              h('span', { className: 'mnl-dim' }, t('sides.weight')),
-              h('input', { type: 'number', min: 0, step: 0.5, value: mine.weight ?? side.own,
-                className: mine.weight !== undefined ? 'mnl-changed' : '',
-                onChange: event => set(side.name, 'weight', Number(event.target.value)) })))
-        }),
-        h('div', { className: 'mnl-group' },
-          h('label', { className: draft.side !== undefined ? 'mnl-field mnl-changed' : 'mnl-field' },
-            h('span', null, t('sides.lock')),
-            h('select', { className: 'mnl-select', value: locked?.name || '',
-              onChange: event => lock(event.target.value, locked?.often ?? 1) },
-            h('option', { value: '' }, t('sides.drawn')),
-            sides.filter(side => !staged(side.name).drop).map(side => h('option', { key: side.name, value: side.name },
-              side.name)))),
-          locked ? h(Slider, { label: t('sides.often'), value: locked.often, low: 0, high: 1, step: 0.05,
-            changed: draft.side !== undefined, onChange: often => lock(locked.name, often) }) : null,
-          h('div', { className: 'mnl-dim' }, t('sides.oftenHint'))),
-        h('div', { className: 'mnl-group' },
-          h('div', { className: 'mnl-group-title' }, t('sides.add')),
-          h('select', { className: 'mnl-select', value: fresh.name,
-            onChange: event => setFresh(old => ({ ...old, name: event.target.value })) },
+        h('div', { className: 'mnl-tags' }, sides.length ? sides.map(item => h('button', { key: item.name,
+          type: 'button', 'aria-pressed': item.name === chosen, onClick: () => choose(item.name),
+          className: ['mnl-tag', item.name === chosen ? 'mnl-chosen' : '', staged(item.name).drop ? 'mnl-gone' : '',
+            draft.sides[item.name] ? 'mnl-changed' : ''].filter(Boolean).join(' ') }, item.name,
+          locked?.name === item.name ? h('span', { className: 'mnl-dim' }, `· ${t('sides.locked')}`) : null))
+          : h('span', { className: 'mnl-dim' }, t('sides.none'))),
+        h('div', { className: 'mnl-row' },
+          h('select', { className: 'mnl-select', value: adding, 'aria-label': t('sides.pick'),
+            onChange: event => setAdding(event.target.value) },
           h('option', { value: '' }, t('sides.pick')),
           free.map(name => h('option', { key: name, value: name }, name))),
-          h('textarea', { className: 'mnl-text', rows: 2, maxLength: 200, placeholder: t('sides.what'),
-            value: fresh.what, onChange: event => setFresh(old => ({ ...old, what: event.target.value })) }),
-          h('div', { className: 'mnl-row' }, h('button', { type: 'button', className: 'mnl-button',
-            disabled: !fresh.name || !fresh.what.trim(), onClick: () => {
-              set(fresh.name, 'what', fresh.what.trim())
-              setFresh({ name: '', what: '' })
-            } }, t('sides.write')))))
+          h('button', { type: 'button', className: 'mnl-button', disabled: !adding, onClick: add }, t('sides.write')),
+          h('button', { type: 'button', className: 'mnl-button', disabled: !side || side.given, onClick: remove },
+            dropping ? t('people.undo') : t('sides.drop'))),
+        side ? h('div', { className: 'mnl-edit', key: side.name },
+          h('div', { className: 'mnl-edit-title' }, side.name,
+            side.given ? h('span', { className: 'mnl-dim' }, t('sides.given')) : null,
+            dropping ? h('span', { className: 'mnl-changed' }, t('sides.dropped')) : null),
+          side.given ? h('div', null, side.what) : h('textarea', { className: mine.what !== undefined
+            ? 'mnl-text mnl-changed' : 'mnl-text', rows: 2, maxLength: 200, disabled: dropping,
+          placeholder: t('sides.what'), value: mine.what ?? side.what,
+          onChange: event => set(side.name, 'what', event.target.value) }),
+          side.fresh && !(mine.what || '').trim() ? h('div', { className: 'mnl-error' }, t('sides.needsWhat')) : null,
+          side.given ? null : h('label', { className: 'mnl-field' },
+            h('span', { className: 'mnl-dim' }, t('sides.weight')),
+            h('input', { type: 'number', min: 0, step: 0.5, value: mine.weight ?? side.own, disabled: dropping,
+              className: mine.weight !== undefined ? 'mnl-changed' : '',
+              onChange: event => set(side.name, 'weight', Number(event.target.value)) })),
+          h('label', { className: draft.side !== undefined ? 'mnl-check mnl-changed' : 'mnl-check' },
+            h('input', { type: 'checkbox', checked: isLocked, disabled: dropping,
+              onChange: event => lock(event.target.checked ? { name: side.name, often: locked?.often ?? 1 } : null) }),
+            t('sides.lockThis')),
+          isLocked ? h(Slider, { label: t('sides.often'), value: locked.often, low: 0, high: 1, step: 0.05, plain: true,
+            wide: true,
+            changed: draft.side !== undefined, onChange: often => lock({ name: side.name, often }) }) : null,
+          h('div', { className: 'mnl-dim' }, t('sides.oftenHint'))) : null)
     }
 
     /** Her settings on the plugin's page under Plugins: staged here, and sent together on save. */
@@ -753,9 +855,7 @@ window.__ModuleLoader__.load({
       const tau = draft.tau ?? String(report.tau), sensitivity = draft.sensitivity ?? report.sensitivity
       const badTau = !(Number(tau) > 0 && Number.isFinite(Number(tau)))
       const count = counted(draft, view), heartLocked = draft.locked ?? view.locked
-      const tuneOf = end => ({ ...view.ends.find(item => item.end === end), ...draft.tune[end] })
-      const retune = (end, what, value) => setDraft(old => ({ ...old, tune: { ...old.tune,
-        [end]: { ...old.tune[end], [what]: value } } }))
+      const unwritten = Object.values(draft.sides).some(item => item.fresh && !(item.what || '').trim())
       const send = async (body, done) => {
         setStatus({ busy: true, text: '', error: null })
         try {
@@ -801,27 +901,8 @@ window.__ModuleLoader__.load({
             h('span', { className: draft.sensitivity !== undefined ? 'mnl-number mnl-changed' : 'mnl-number' },
               signed(sensitivity))),
           h('div', { className: 'mnl-dim' }, t('settings.sensitivityHint'))),
-        h('section', { className: 'mnl-card' },
-          h('div', { className: 'mnl-subtitle' }, t('settings.tunes')),
-          h('div', { className: 'mnl-dim' }, t('settings.tunesHint')),
-          h('div', { className: 'mnl-tunes' }, view.bars.map(bar => h('div', { key: bar.bar, className: 'mnl-group' },
-            h('div', { className: 'mnl-group-title' }, barName(t, bar)),
-            bar.ends.filter(Boolean).map(end => {
-              const tune = tuneOf(end), changed = draft.tune[end] || {}
-              return h('div', { key: end, className: 'mnl-tune' },
-                h('div', { className: 'mnl-tune-name' },
-                  h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, end, dark) } }),
-                  endName(t, view, end)),
-                h(Slider, { label: t('settings.nature'), value: tune.nature, low: -3, high: 3, step: 0.1,
-                  changed: changed.nature !== undefined, onChange: value => retune(end, 'nature', value) }),
-                h(Slider, { label: t('settings.now'), value: tune.now, low: -1, high: 1, step: 0.05,
-                  changed: changed.now !== undefined, onChange: value => retune(end, 'now', value) }))
-            }))))),
-        h('section', { className: 'mnl-card' },
-          h('div', { className: 'mnl-subtitle' }, t('people.title')),
-          h('div', { className: 'mnl-dim' }, t('people.hint')),
-          view.people.length ? view.people.map(person => h(Person, { key: person.subject, person, view, draft,
-            stage: setDraft, dark, t })) : h('div', { className: 'mnl-dim' }, t('people.none'))),
+        h(Feelings, { view, draft, stage: setDraft, dark, t }),
+        h(People, { view, draft, stage: setDraft, dark, t }),
         h(Sides, { view, draft, stage: setDraft, t }),
         h('div', { className: 'mnl-savebar' },
           h('span', { className: count ? 'mnl-changed' : 'mnl-dim' },
@@ -831,7 +912,8 @@ window.__ModuleLoader__.load({
           h('span', { className: 'mnl-spacer' }),
           h('button', { type: 'button', className: 'mnl-button', disabled: status.busy || !count,
             onClick: () => setDraft(EMPTY()) }, t('settings.discard')),
-          h('button', { type: 'button', className: 'mnl-button mnl-primary', disabled: status.busy || !count || badTau,
+          h('button', { type: 'button', className: 'mnl-button mnl-primary',
+            disabled: status.busy || !count || badTau || unwritten,
             onClick: save }, t('settings.save'))))
     }
 
@@ -930,21 +1012,45 @@ window.__ModuleLoader__.load({
 .mnl-header:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(128,128,128,.1));
   color: var(--dsw-alias-label-primary, inherit) }
 .mnl-wide { grid-template-columns: minmax(8em, auto) 1fr 3.2em }
+.mnl-split { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 10px; align-items: start }
+.mnl-list { display: flex; flex-direction: column; gap: 1px; max-height: 280px; overflow-y: auto; padding: 4px;
+  border: .5px solid var(--dsw-alias-border-l2, rgba(128,128,128,.22)); border-radius: 10px }
+.mnl-list-group { font-size: 11.5px; font-weight: 600; padding: 6px 8px 2px;
+  color: var(--dsw-alias-label-tertiary, #888) }
+.mnl-option { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 8px; border: 0;
+  border-radius: 7px; background: transparent; color: inherit; font: inherit; font-weight: 400; text-align: left;
+  cursor: pointer }
+.mnl-option:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(128,128,128,.1)) }
+.mnl-chosen, .mnl-chosen:hover { background: var(--dsw-alias-state-business-secondary, rgba(77,107,254,.14)) }
+.mnl-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.mnl-option-note { font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums }
+.mnl-option.mnl-changed .mnl-option-name::after { content: ' •' }
+.mnl-gone .mnl-option-name, .mnl-tag.mnl-gone { text-decoration: line-through; opacity: .6 }
+.mnl-edit { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: 10px;
+  border: .5px solid var(--dsw-alias-border-l2, rgba(128,128,128,.22)) }
+.mnl-edit-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600 }
+.mnl-edit-title .mnl-dim { font-weight: 400 }
+.mnl-tags { display: flex; flex-wrap: wrap; gap: 6px }
+.mnl-tag { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 12px; border-radius: 14px;
+  font: inherit; color: inherit; background: transparent; cursor: pointer;
+  border: .5px solid var(--dsw-alias-border-l4, rgba(128,128,128,.5)) }
+.mnl-tag.mnl-chosen { border-color: var(--dsw-alias-state-business-primary, #4d6bfe) }
+.mnl-small-tag { height: 24px; padding: 0 9px; font-size: 12px }
 .mnl-stack { display: flex; flex-direction: column; gap: 4px }
 .mnl-check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; cursor: pointer }
 .mnl-check input { margin-top: 3px; flex: none }
-.mnl-who-card > summary, .mnl-inner > summary { cursor: pointer; list-style-position: inside }
-.mnl-who-card[open] > summary { margin-bottom: 4px }
-.mnl-who-name { font-weight: 600; overflow-wrap: anywhere }
 .mnl-inner { border-top: .5px solid var(--dsw-alias-border-l2, rgba(128,128,128,.22)); padding-top: 6px }
 .mnl-text, .mnl-select { font: inherit; color: inherit; box-sizing: border-box; border-radius: 8px; padding: 6px 8px;
-  background: var(--dsw-alias-bg-layer-3, transparent); border: .5px solid var(--dsw-alias-border-l4, rgba(128,128,128,.5)) }
+  background: var(--dsw-alias-bg-layer-3, transparent);
+  border: .5px solid var(--dsw-alias-border-l4, rgba(128,128,128,.5)) }
 .mnl-text { width: 100%; resize: vertical }
 .mnl-select { height: 30px; padding: 0 8px; max-width: 100% }
 .mnl-field input[type=number].mnl-changed { color: var(--dsw-alias-state-business-primary, #4d6bfe) }
 @media (max-width: 480px) {
   .mnl-tunes { grid-template-columns: 1fr }
   .mnl-wide { grid-template-columns: 1fr 3.2em }
+  .mnl-split { grid-template-columns: 1fr }
+  .mnl-list { max-height: 200px }
   .mnl-wide > .mnl-dim { grid-column: 1 / -1 }
   .mnl-bar { grid-template-columns: 5em minmax(40px, 1fr) 2.4em 3em; gap: 4px }
 }`
