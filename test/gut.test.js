@@ -68,7 +68,8 @@ test('slow levels, sensitivity, the line, notes and readings', () => {
     G.mine('元気', 'いいにゃ nya', 'ja')], V.mine)
   assert.deepEqual([G.written('{"mood": 9, "feel": {"sad": 2, "calm": 0.5, "angry": 9}}'),
     G.written('{"feel": {"angry": 1}}')], V.written)
-  assert.deepEqual([G.vector('{"feel": {"Defiant": 0.7, "sad": 3}}'), G.vector('{"sad": 0}')], V.vector)
+  assert.deepEqual([G.vector('{"feel": {"Defiant": 0.7, "sad": 3}}'), G.vector('{"sad": 0}'),
+    G.vector('{"feeling": {"irritable": 0.55, "cheeky": 0.6}}')], V.vector)
   assert.equal(G.vector('{"sad": "x"}'), null)
   assert.deepEqual(['今天好累', '今日好攰', 'おはよう', 'hello'].map(G.languageOf), V.languages)
 })
