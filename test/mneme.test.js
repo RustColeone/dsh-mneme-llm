@@ -63,21 +63,23 @@ test('zones: an offset, an IANA name Python knows in the same case, or the machi
   assert.equal(talkingDay(late, zoneOf('Asia/Shanghai')), talkingDay(Date.UTC(2026, 0, 1, 12) / 1000, { offset: 0 }))
 })
 
-test('a role keeps closeness in its band; one creator; growth on a talking day, fading without', () => {
-  const [m, clock] = companion({ config: { relations: { growth: 2 } } })
+test('a role keeps closeness in its band; one creator; closeness moves with how she takes them, fading without', () => {
+  const [m, clock] = companion({ config: { relations: { liking: 0.5 } } })
   assert.equal(m.relate('u', 'creator').closeness, 100)
   assert.throws(() => m.relate('v', 'creator'), /already the creator/)
   assert.throws(() => m.relate('v', 'friend', { closeness: 95 }), py.ValueError)
   assert.throws(() => m.relate('v', 'stranger'), /no role 'stranger'/)
   m.relate('v', 'friend', { closeness: 40 })
   assert.equal(m.relate('v', 'friend').closeness, 40) // (the same role again changes nothing)
-  m.observe('v', [['Sam', 'hi']])
-  assert.equal(m.relations.get('v').closeness, 40) // (the day it was given)
+  m.relations.seen('v', 0) // a talk that left her as she was
+  m.relations.seen('v') // nothing judged
+  assert.equal(m.relations.get('v').closeness, 40)
   clock.now += DAY
-  m.observe('v', [['Sam', 'hi again']])
-  clock.now += 3600
-  m.observe('v', [['Sam', 'and again']])
-  assert.ok(Math.abs(m.relations.get('v').closeness - (40 + 2 - 1 / 30 - 1 / 720)) < 1e-9) // (once a day, after fading)
+  m.relations.seen('v', 2)
+  const faded = 40 - 1 / 30
+  assert.ok(Math.abs(m.relations.get('v').closeness - (faded + 0.5 * 2 * (90 - faded) / 70)) < 1e-9)
+  for (let i = 0; i < 400; i++) m.relations.seen('v', -2)
+  assert.ok(m.relations.get('v').closeness >= 20 && m.relations.get('v').closeness < 21) // down toward the floor
   clock.now += 3000 * DAY // (a point every 30 days)
   assert.equal(m.relations.get('v').closeness, 20) // faded to the band's floor
   assert.equal(m.relations.get('u').closeness, 100) // a creator does not fade

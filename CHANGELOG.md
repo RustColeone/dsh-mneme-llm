@@ -18,6 +18,10 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   far from usual.
 - **Settings:** `new Gut(file, { tau, zone })`, `configure({ tau, sensitivity })`, `tune(end, { now, nature })`,
   `setAge(lessons)`. They outlast `wipe`. The plugin takes `tau` and `sensitivity`, and gives her gut her time zone.
+- **Closeness moves with how she takes a person,** as in mneme-llm 0.5.0: each exchange they start moves it by the mood
+  judge's level for it, `relations.liking` (0.25) points a level times the room left in the band that way; a talk
+  that leaves her as she was moves nothing. `new Relations(store, space, { liking })` replaces `growth`, and
+  `relations.growth` is read from older files but no longer used.
 - **A word she says mostly to one person is theirs** (`OWN`, 80% of its uses): their name or their in-joke shows in her
   line only with them, never to someone new.
 - **A panel in DeepSeek Harness** (`plugin/client.js`, the plugin's client half). On the plugin's page under Plugins:
