@@ -39,6 +39,7 @@ window.__ModuleLoader__.load({
     }
 
     const EN = {
+      lang: 'en',
       'tab.title': 'Her gut',
       'tab.description': 'Her star map, how she feels lately, how grown up she is, and the people she knows',
       'header.open': 'Her gut',
@@ -83,9 +84,10 @@ window.__ModuleLoader__.load({
       'settings.youngConfirm': 'Make her young again? Her age goes back to 0 and her heart learns fast again. She ' +
         'forgets nothing.',
       'settings.sensitivity': 'Sensitivity',
-      'settings.sensitivityHint': 'How hard every moment hits her: -1 钝感 (lightly) to 1 敏感 (hard); 0 is as she is.',
-      'settings.dull': '钝感',
-      'settings.keen': '敏感',
+      'settings.sensitivityHint': 'How hard every moment hits her: -1 thick-skinned (lightly) to 1 sensitive (hard); ' +
+        '0 is as she is.',
+      'settings.dull': 'thick-skinned',
+      'settings.keen': 'sensitive',
       'settings.tunes': 'Each feeling, by hand',
       'settings.tunesHint': 'Nature (-3 to 3) nudges who she is: learning never takes it away, and 0 removes it. Now ' +
         '(-1 to 1) is how much more or less of it she feels lately than usual: it fades as she lives.',
@@ -101,6 +103,7 @@ window.__ModuleLoader__.load({
     }
     const ZH = {
       ...EN,
+      lang: 'zh-CN',
       'tab.title': '她的直觉',
       'tab.description': '她的星图、她最近的感觉、她长大了多少，以及她认识的人',
       'header.open': '她的直觉',
@@ -209,7 +212,10 @@ window.__ModuleLoader__.load({
       return (bars[index].ends[0] === end ? shades.deep : shades.light)[index]
     }
 
-    const zhOf = (ends, end) => ends?.find(item => item.end === end)?.zh ?? end
+    /** A feeling's or a bar's name in the page's language: Chinese on a Chinese page, its own English elsewhere. */
+    const chinese = t => String(t('lang')).startsWith('zh')
+    const endName = (t, view, end) => chinese(t) ? view.ends?.find(item => item.end === end)?.zh ?? end : end
+    const barName = (t, bar) => chinese(t) ? bar.zh : bar.bar
 
     /** The base radius of the star map: as big as fits, with each end's name at its arm's tip, read outward. */
     function baseRadius (half, arms, widths, gap = 0.12) {
@@ -217,7 +223,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Her star map on a canvas; what was drawn where, for picking a star. */
-    function draw (canvas, map, view, dark, picked) {
+    function draw (canvas, map, view, dark, picked, t) {
       const width = Math.max(120, Math.round(canvas.getBoundingClientRect().width))
       const ratio = window.devicePixelRatio || 1
       if (canvas.width !== width * ratio) {
@@ -235,7 +241,7 @@ window.__ModuleLoader__.load({
       g.roundRect(0, 0, width, width, 12)
       g.fill()
       g.font = `${font}px system-ui, -apple-system, sans-serif`
-      const names = map.ends.map(end => zhOf(view.ends, end))
+      const names = map.ends.map(end => endName(t, view, end))
       const arms = map.reach.map(reach => Math.min(ARM, reach))
       const R = Math.max(10, baseRadius(half, arms, names.map(name => g.measureText(name).width)))
       const angle = k => -Math.PI / 2 + 2 * Math.PI * k / map.ends.length
@@ -365,7 +371,7 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         const element = canvas.current
         if (!element || !map) return
-        const paint = () => { drawn.current = draw(element, map, view, isDark(element), picked) }
+        const paint = () => { drawn.current = draw(element, map, view, isDark(element), picked, t) }
         paint()
         const resized = new ResizeObserver(paint)
         resized.observe(element)
@@ -376,7 +382,7 @@ window.__ModuleLoader__.load({
           resized.disconnect()
           themed.disconnect()
         }
-      }, [map, view, picked])
+      }, [map, view, picked, t])
       const point = event => {
         if (!drawn.current) return
         const box = canvas.current.getBoundingClientRect()
@@ -390,7 +396,7 @@ window.__ModuleLoader__.load({
           lessons: person.lessons, weight: percent(person.weight) })
       } else if (picked) {
         const [, , bright, end] = picked.star
-        caption = t('map.star', { key: picked.key, end: `${zhOf(view.ends, map.ends[end])} ${map.ends[end]}`,
+        caption = t('map.star', { key: picked.key, end: endName(t, view, map.ends[end]),
           bright: fixed(bright) })
       }
       return h('div', { className: 'mnl-map' },
@@ -403,20 +409,20 @@ window.__ModuleLoader__.load({
     }
 
     /** A bar lately against usual: two-sided from the middle, one-sided from the left. */
-    function Bar ({ bar, view, dark }) {
+    function Bar ({ bar, view, dark, t }) {
       const [left, right] = bar.ends, two = Boolean(left)
       const at = value => two ? 50 + Math.max(-1, Math.min(1, value)) * 50 : Math.max(0, Math.min(1, value)) * 100
       const from = two ? Math.min(50, at(bar.lately)) : 0, to = two ? Math.max(50, at(bar.lately)) : at(bar.lately)
       const toward = two && bar.lately < 0 ? left : right
       return h('div', { className: 'mnl-bar' },
-        h('span', { className: 'mnl-end mnl-left' }, left ? zhOf(view.ends, left) : ''),
+        h('span', { className: 'mnl-end mnl-left' }, left ? endName(t, view, left) : ''),
         h('div', { className: 'mnl-track',
-          title: `${bar.zh} ${bar.bar}: ${signed(bar.lately)} / ${signed(bar.usual)}` },
+          title: `${barName(t, bar)}: ${signed(bar.lately)} / ${signed(bar.usual)}` },
           two ? h('span', { className: 'mnl-middle' }) : null,
           h('span', { className: 'mnl-fill', style: { left: `${from}%`, width: `${Math.max(0.5, to - from)}%`,
             background: endColour(view.bars, toward, dark) } }),
           h('span', { className: 'mnl-tick', style: { left: `${at(bar.usual)}%` } })),
-        h('span', { className: 'mnl-end' }, zhOf(view.ends, right)),
+        h('span', { className: 'mnl-end' }, endName(t, view, right)),
         h('span', { className: 'mnl-value' }, signed(bar.lately)))
     }
 
@@ -472,7 +478,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'mnl-title' },
             view.companion ? `${view.companion} · ${t('tab.title')}` : t('tab.title')),
           h('div', { className: 'mnl-dim' }, [t('lessons', { lessons: report.lessons }),
-            at ? t('updated', { time: at.toLocaleTimeString() }) : ''].filter(Boolean).join(' · '))),
+            at ? t('updated', { time: at.toLocaleTimeString(t('lang')) }) : ''].filter(Boolean).join(' · '))),
         error ? h('div', { className: 'mnl-error' }, t('unreachable', { error })) : null,
         state.map ? h(StarMap, { map: state.map, view, t }) : h('div', { className: 'mnl-dim' }, t('loading')),
         h('div', { className: 'mnl-levels' },
@@ -481,7 +487,8 @@ window.__ModuleLoader__.load({
         h('section', { className: 'mnl-card' },
           h('div', { className: 'mnl-subtitle' }, t('bars.title')),
           h('div', { className: 'mnl-dim' }, t('bars.hint')),
-          h('div', { className: 'mnl-bars' }, view.bars.map(item => h(Bar, { key: item.bar, bar: item, view, dark })))),
+          h('div', { className: 'mnl-bars' },
+            view.bars.map(item => h(Bar, { key: item.bar, bar: item, view, dark, t })))),
         h('section', { className: 'mnl-card' },
           h('div', { className: 'mnl-subtitle' }, t('grown.title')),
           h('div', null, t('grown.age', { age: report.age })),
@@ -584,13 +591,13 @@ window.__ModuleLoader__.load({
           h('div', { className: 'mnl-subtitle' }, t('settings.tunes')),
           h('div', { className: 'mnl-dim' }, t('settings.tunesHint')),
           h('div', { className: 'mnl-tunes' }, view.bars.map(bar => h('div', { key: bar.bar, className: 'mnl-group' },
-            h('div', { className: 'mnl-group-title' }, `${bar.zh} · ${bar.bar}`),
+            h('div', { className: 'mnl-group-title' }, barName(t, bar)),
             bar.ends.filter(Boolean).map(end => {
               const tune = tuneOf(end), changed = draft.tune[end] || {}
               return h('div', { key: end, className: 'mnl-tune' },
                 h('div', { className: 'mnl-tune-name' },
                   h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, end, dark) } }),
-                  `${tune.zh} ${end}`),
+                  endName(t, view, end)),
                 h(Slider, { label: t('settings.nature'), value: tune.nature, low: -3, high: 3, step: 0.1,
                   changed: changed.nature !== undefined, onChange: value => retune(end, 'nature', value) }),
                 h(Slider, { label: t('settings.now'), value: tune.now, low: -1, high: 1, step: 0.05,
@@ -739,7 +746,8 @@ window.__ModuleLoader__.load({
       })
     }
 
-    module.exports = { inject, apply, format, endColour, baseRadius, nearest, COLOURS, EN, ZH, ROUTES, KIND }
+    module.exports = { inject, apply, format, endColour, baseRadius, nearest, endName, barName, COLOURS, EN, ZH, ROUTES,
+      KIND }
     return module.exports
   }
 })

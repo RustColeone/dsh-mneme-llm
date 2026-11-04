@@ -52,6 +52,18 @@ test('the bundle registers her settings, her sidebar tab and a button to open it
   assert.deepEqual(Object.values(client.ROUTES), ['api/mneme-llm.gut', 'api/mneme-llm.starmap', 'api/mneme-llm.change'])
 })
 
+test('each page shows one language: English words on an English page, Chinese names on a Chinese one', () => {
+  const client = load()
+  const han = /[\u3400-\u9fff]/
+  assert.deepEqual(Object.entries(client.EN).filter(([, words]) => han.test(words)), [])
+  assert.deepEqual(Object.keys(client.ZH).filter(key => client.ZH[key] === client.EN[key]), ['san'])
+  const view = { ends: [{ end: 'sad', zh: '难过' }] }, bar = { bar: 'mood', zh: '心情' }
+  const en = key => client.format(client.EN[key] ?? key), zh = key => client.format(client.ZH[key] ?? key)
+  assert.deepEqual([client.endName(en, view, 'sad'), client.barName(en, bar)], ['sad', 'mood'])
+  assert.deepEqual([client.endName(zh, view, 'sad'), client.barName(zh, bar)], ['难过', '心情'])
+  assert.equal(client.endName(zh, view, 'happy'), 'happy') // (a name the page was not sent stays as it is)
+})
+
 test('each end has its bar\'s colour, the first end deeper; her map and its names fit their square', () => {
   const client = load()
   const bars = BARS.map(([bar, zh, left, right]) => ({ bar, zh, ends: [left ? left[0] : null, right[0]] }))
