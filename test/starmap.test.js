@@ -16,9 +16,9 @@ const close = (one, other, within = 1e-9) => assert.ok(Math.abs(one - other) < w
 const row = (pulls = {}) => G.ENDS.map(end => pulls[end] ?? 0.0)
 
 test('a row sits where it pulls her, as bright as it leans, in the colour of its strongest end', () => {
-  assert.equal(S.ANGLES.length, 24)
+  assert.equal(S.ANGLES.length, 26)
   close(S.ANGLES[0], -Math.PI / 2) // (the first end at the top)
-  close(S.ANGLES[6], 0) // (a quarter of the way round, on the right)
+  close(S.ANGLES[13], Math.PI / 2) // (half way round, at the bottom)
   assert.deepEqual(S.spot(row()).map(value => Math.abs(value) < 1e-12), [true, true]) // (no lean: the middle)
   const toward = G.ENDS.indexOf('sweet')
   const [x, y] = S.spot(row({ sweet: 9 }))
@@ -27,7 +27,7 @@ test('a row sits where it pulls her, as bright as it leans, in the colour of its
   const reach = G.ENDS.map((end, k) => k === toward ? 2.0 : 1.0)
   close(S.spot(row({ sweet: 9 }), reach)[0], 2 * x, 1e-6)
   const pulls = row({ happy: 0.5, sad: 0.2 }), exp = value => Math.exp(S.SPREAD * value)
-  const total = exp(0.5) + exp(0.2) + 22 * exp(0)
+  const total = exp(0.5) + exp(0.2) + (G.ENDS.length - 2) * exp(0)
   close(S.spot(pulls)[0], [...pulls.keys()].reduce((sum, k) => sum + exp(pulls[k]) / total * Math.cos(S.ANGLES[k]), 0))
   assert.equal(S.brightness(row({ happy: 0.5, sad: -0.25 })), 0.75)
   assert.equal(S.strongest(row({ happy: 0.5, sad: 0.7 })), G.ENDS.indexOf('sad'))
@@ -37,7 +37,7 @@ test('a row sits where it pulls her, as bright as it leans, in the colour of its
 test('in 3D her bars are spread over a sphere, and the two ends of a bar sit side by side', () => {
   const angle = (one, other) => Math.acos(Math.min(1, one.reduce((sum, value, k) => sum + value * other[k], 0)))
   const barOf = G.BARS.flatMap(([bar, , left]) => left ? [bar, bar] : [bar])
-  assert.equal(S.DIRECTIONS.length, 24)
+  assert.equal(S.DIRECTIONS.length, 26)
   for (const direction of S.DIRECTIONS) close(Math.hypot(...direction), 1)
   let nearest = Infinity
   S.DIRECTIONS.forEach((one, i) => S.DIRECTIONS.forEach((other, j) => {
@@ -89,7 +89,7 @@ test('her star map: the rows that lean most, her arms over her own latest lesson
     const probe = S.probeOf(gut), reach = S.arms(gut.net.heart, S.born(STARTER), probe)
     assert.deepEqual(probe[0], [FORMS[29 % 3], 85]) // (the newest first)
     assert.ok(map.reach[G.ENDS.indexOf('jealous')] > 1) // (she feels it more than she was born to)
-    assert.equal(map.directions.length, 24)
+    assert.equal(map.directions.length, 26)
     for (const [x, y, bright, end, key, ...at] of map.stars.slice(0, 5)) {
       const weights = gut.net.heart.w.get(key), [sx, sy] = S.spot(weights, reach)
       close(x, sx, 1e-4)

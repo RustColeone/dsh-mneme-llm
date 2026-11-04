@@ -93,6 +93,53 @@ test('both ends of a bar at once, and lessons from before teach only the seven t
   assert.ok(net.vector(FORM, 85).happy < defiant)
 })
 
+test('a new bar goes last; born suspicious, she can still trust one person', () => {
+  assert.deepEqual([G.ENDS.length, G.ENDS[23], G.ENDS.slice(24)], [26, 'aching', ['suspicious', 'trusting']])
+  const net = new G.Net()
+  teachMany(net, 'b', { suspicious: 0.9 }, 60) // who she became: doubting what anyone means by it
+  net.sleep()
+  net.locked = true // (her heart stays so: only how she is with one person moves)
+  teachMany(net, 'a', { trusting: 0.9 }, 60)
+  net.sleep()
+  const alone = net.vector(FORM, 85), withThem = net.vector(FORM, 85, 'a')
+  assert.ok(alone.suspicious > 0.6 && alone.trusting < 0.1)
+  assert.ok(withThem.trusting > withThem.suspicious)
+  assert.deepEqual(net.vector(FORM, 85, 'c'), alone) // someone new meets her heart
+})
+
+test('a file from 0.5 is widened: its 24 ends as they were, the new ones as nothing yet', async () => {
+  const where = file()
+  const gut = new G.Gut(where)
+  gut.wake()
+  for (let i = 0; i < 20; i++) gut.teach('discord:1', 'zh', FORM, { feel: JEALOUS, mood: 1 }, 85, ['喵'])
+  await gut.sleep()
+  for (let i = 0; i < 5; i++) gut.teach('discord:1', 'zh', FORM, { feel: JEALOUS, mood: 1 }, 85, ['喵'])
+  gut.close()
+  let db = new DatabaseSync(where)
+  db.prepare('update lessons set feel = ? where id > 20').run(JSON.stringify({ ...JEALOUS, trusting: 0.9 }))
+  db.close()
+  const same = path.join(path.dirname(where), 'same.db')
+  fs.copyFileSync(where, same)
+  const narrow = table => ({ w: Object.fromEntries(Object.entries(table.w).map(([key, row]) => [key, row.slice(0, 24)])),
+    b: table.b.slice(0, 24) })
+  db = new DatabaseSync(where) // as 0.5 wrote it: 24 ends
+  const kept = JSON.parse(zlib.gunzipSync(db.prepare("select value from state where key = 'heart'").get().value))
+  kept.heart = narrow(kept.heart)
+  for (const found of Object.values(kept.people)) found.table = narrow(found.table)
+  db.prepare("update state set value = ? where key = 'heart'").run(zlib.gzipSync(Buffer.from(JSON.stringify(kept))))
+  db.prepare('update lessons set ends = 24').run()
+  db.close()
+  const reference = new G.Gut(same), widened = new G.Gut(where)
+  reference.wake()
+  widened.wake()
+  const before = reference.net.vector(FORM, 85, 'discord:1'), after = widened.net.vector(FORM, 85, 'discord:1')
+  for (const end of G.ENDS.slice(0, 24)) assert.ok(Math.abs(after[end] - before[end]) < 1e-12, end)
+  assert.ok(before.trusting > G.squash(G.BLANK) + 0.01) // (what 26 ends taught)
+  for (const end of ['suspicious', 'trusting']) assert.ok(Math.abs(after[end] - G.squash(G.BLANK)) < 1e-12, end)
+  reference.close()
+  widened.close()
+})
+
 test('her heart grows up, and each person she knows has a way of their own', () => {
   const moved = [0, 5 * G.TAU].map(age => {
     const net = new G.Net()

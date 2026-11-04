@@ -87,8 +87,9 @@ it moved her mood (the judge's −2 to +2, `relations.liking` points a level, le
 so a talk that leaves her as she was moves nothing; it fades slowly when they don't talk.
 
 **The gut.** Her gut lives in a file of its own, so wiping her memory does not touch it. Before she answers, her model
-puts the message into a small form, and her gut turns that into her feelings: 24 ends on 13 bars, such as sad or
-happy, irritable or peaceable, wronged or defiant, timid or bold, and jealous and aching on their own. Each end is a
+puts the message into a small form, and her gut turns that into her feelings: 26 ends on 14 bars, such as sad or
+happy, irritable or peaceable, wronged or defiant, timid or bold, suspicious or trusting, and jealous and aching on their
+own. Each end is a
 strength of its own, so both ends of a bar can be strong at once: sweet and scornful together is love-hate. Her model
 also gives its reading, with her memory in view, and a balance that adjusts itself weighs the two. The result is one
 fixed-size line beside the message: how she feels (at most three feelings), her slow levels when they are far from
@@ -313,8 +314,8 @@ sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --
 
 - **Plugins → dsh-mneme-llm** changes her gut while it runs: `tau` (how many lessons her heart takes to grow up; she
   is grown up at five times it), sensitivity (−1 钝感, things hit her lightly, to 1 敏感, they hit her hard), her age
-  with a "young again" button (she learns fast again and forgets nothing), and each of her 24 feelings by hand,
-  grouped by her 13 bars: *nature* (−3 to 3) nudges who she is and is never learned away, 0 removes it; *now* (−1 to
+  with a "young again" button (she learns fast again and forgets nothing), and each of her 26 feelings by hand,
+  grouped by her 14 bars: *nature* (−3 to 3) nudges who she is and is never learned away, 0 removes it; *now* (−1 to
   1) is how much more or less of it she feels lately than usual, and it fades as she lives. Changes are saved
   together, reach the running plugin at once and are kept in her gut file (`gut.db`). From then on they win over
   `tau` and `sensitivity` in the plugin's settings, which only start a gut that has no settings of its own. The same
@@ -322,11 +323,11 @@ sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --
   them counts, a lock on how she is with them, a nudge to each feeling with them alone, and forgetting them), and her
   sides: each sentence and weight, a new side, dropping one, and the side she is locked in with how often it shows.
 - **Her gut** (她的直觉), a tab in the right sidebar (the heart button in a conversation's header opens it): the star
-  map of her heart and the people she knows, flat or in 3D (her bars on a sphere, the two ends of each side by side;
-  drag to turn it) (each dot one thing she notices, placed toward the feeling it pulls her to, brighter the more it leans; the lines
-  her arms, how much more or less of each feeling she has now than when she was born, the ring; each person she
-  knows a big star), her 13 bars lately against usual, SAN and self-esteem, how grown up she is, and the people she
-  knows with how much of how she is with each is theirs alone. It updates every few seconds while it is open,
+  map of her heart and the people she knows (each dot one thing she notices, placed toward the feeling it pulls her to,
+  brighter the more it leans; the lines her arms, how much more or less of each feeling she has now than when she was
+  born, the ring; each person she knows a big star), flat or in 3D, where her bars sit on a sphere with the two ends of
+  each side by side and a drag turns it; her 14 bars lately against usual, SAN and self-esteem, how grown up she is,
+  and the people she knows with how much of how she is with each is theirs alone. It updates every few seconds while it is open,
   follows DSH's light and dark themes, and fits a phone.
 
 The panel reads and changes her gut through three routes on DSH's own API (`/api/mneme-llm.gut`,

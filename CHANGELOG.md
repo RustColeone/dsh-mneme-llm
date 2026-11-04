@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A 14th bar, trust: 猜疑 suspicious or 信任 trusting** (`trust` in `BARS`), as in mneme-llm: what she believes
+  people mean toward her, in her heart and in each person's table, so she can be born suspicious and still trust one
+  person. It goes last, so a 0.3 gut file is widened as it is read (its 24 ends as they were, the new two as nothing
+  yet) and its lessons teach only the 24 they knew. Her note scores all 26; trusting alone puts nothing in the line. The
+  star map places the 14 bars anew on its sphere, and the bar has a colour of its own.
 - **Her star map in 3D**, a switch on her tab (2D or 3D, kept by the browser): her 13 bars spread over a sphere, the
   two ends of each bar side by side (24 degrees apart, every other bar's ends more than 40 away), so a row pulled to
   both ends of a bar goes out between them. Drag to turn it (on a touch screen, sideways: a finger up or down still

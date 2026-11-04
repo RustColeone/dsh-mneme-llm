@@ -122,10 +122,11 @@ test('each end has its bar\'s colour, the first end deeper; her map and its name
   const bars = BARS.map(([bar, zh, left, right]) => ({ bar, zh, ends: [left ? left[0] : null, right[0]] }))
   for (const dark of [false, true]) {
     const shades = client.COLOURS[dark ? 'dark' : 'light']
-    assert.equal(new Set([...shades.deep, ...shades.light]).size, 26)
+    assert.equal(new Set([...shades.deep, ...shades.light]).size, 28)
     assert.equal(client.endColour(bars, 'sad', dark), shades.deep[0])
     assert.equal(client.endColour(bars, 'happy', dark), shades.light[0])
     assert.equal(client.endColour(bars, 'aching', dark), shades.light[12])
+    assert.equal(client.endColour(bars, 'suspicious', dark), shades.deep[13])
   }
   const half = 160, widths = ENDS.map((end, k) => k === 4 ? 50 : 20)
   for (const arms of [ENDS.map(() => 1), ENDS.map(() => 2.4), ENDS.map((end, k) => k % 2 ? 0.5 : 2.4)]) {

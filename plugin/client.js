@@ -25,20 +25,21 @@ window.__ModuleLoader__.load({
     const RESTS = 3000 // and milliseconds after a drag before it turns by itself again
     const SAVED = 'dsh-mneme-llm.map3d' // (the browser keeps which view was chosen)
 
-    // One colour for each of her 13 bars, in BARS order, spread round the colour wheel so that bars side by side
-    // differ; the first end of a bar is a deeper shade and the second a lighter one, stepped for each theme.
+    // One colour for each of her 14 bars, in BARS order: the first 13 spread round the colour wheel so that bars side by
+    // side differ, and the 14th (trust) in the gap between two bars that sit far from it on both maps; the first end of
+    // a bar is a deeper shade and the second a lighter one, stepped for each theme.
     const COLOURS = {
       dark: {
         deep: ['#ca5551', '#12976b', '#9167ca', '#a57710', '#128eaa', '#c35481', '#54932d', '#6676d8', '#c36109',
-          '#13938f', '#b05bab', '#888510', '#1485d4'],
+          '#13938f', '#b05bab', '#888510', '#1485d4', '#0f919c'],
         light: ['#ffaba3', '#72ddae', '#d0b4fd', '#ecbb64', '#58d6f9', '#fea6c5', '#a1d687', '#b2c0ff', '#fdb080',
-          '#4fddd7', '#f0a7ea', '#cbca69', '#91caff']
+          '#4fddd7', '#f0a7ea', '#cbca69', '#91caff', '#4ddae9']
       },
       light: {
         deep: ['#972e2d', '#0c6849', '#674098', '#735100', '#0b6276', '#912d59', '#316802', '#424da5', '#884204',
-          '#0f6562', '#81357d', '#5d5b0a', '#0a5c94'],
+          '#0f6562', '#81357d', '#5d5b0a', '#0a5c94', '#0d646c'],
         light: ['#ce766f', '#44a87f', '#9f81cb', '#b68a37', '#22a2c0', '#c97493', '#73a25b', '#7d8cd7', '#c87e4d',
-          '#0ca8a3', '#b878b3', '#99973d', '#5498d3']
+          '#0ca8a3', '#b878b3', '#99973d', '#5498d3', '#05a5b3']
       }
     }
 
@@ -447,7 +448,7 @@ window.__ModuleLoader__.load({
       return places
     }
 
-    /** Her star map in 3D: her 24 ends on a sphere, each bar's two ends side by side; the nearer, the brighter. */
+    /** Her star map in 3D: her 26 ends on a sphere, each bar's two ends side by side; the nearer, the brighter. */
     function draw3d (canvas, map, view, dark, t, turn) {
       const width = Math.max(120, Math.round(canvas.getBoundingClientRect().width))
       const ratio = window.devicePixelRatio || 1
@@ -819,7 +820,7 @@ window.__ModuleLoader__.load({
           item.note ? h('span', { className: 'mnl-dim mnl-option-note' }, item.note) : null)))
     }
 
-    /** One end chosen from her 24, grouped by bar, as a drop-down. */
+    /** One end chosen from her 26, grouped by bar, as a drop-down. */
     function EndSelect ({ view, value, onChange, t, label }) {
       return h('select', { className: 'mnl-select', value, 'aria-label': label,
         onChange: event => onChange(event.target.value) },
@@ -827,7 +828,7 @@ window.__ModuleLoader__.load({
         bar.ends.filter(Boolean).map(end => h('option', { key: end, value: end }, endName(t, view, end))))))
     }
 
-    /** Her 24 feelings: a list grouped by bar, and the chosen one's nature and now. */
+    /** Her 26 feelings: a list grouped by bar, and the chosen one's nature and now. */
     function Feelings ({ view, draft, stage, dark, t }) {
       const [chosen, choose] = useState(view.ends[0]?.end)
       const tuneOf = end => ({ ...view.ends.find(item => item.end === end), ...draft.tune[end] })
