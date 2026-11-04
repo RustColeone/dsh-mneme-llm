@@ -1,6 +1,6 @@
 {
   "name": "dsh-mneme-llm",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Memory, mood and a character of her own for an AI companion, in one SQLite file; and a DeepSeek Harness plugin that gives them to your companion.",
   "type": "module",
   "license": "MIT",

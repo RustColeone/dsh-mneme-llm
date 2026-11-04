@@ -14,6 +14,7 @@ from pathlib import Path
 from mneme_llm.gut import Gut
 
 STARTER = Path(__file__).resolve().parent.parent / "starter.json.gz"
+AT = 1767225600.0  # the lessons' times: talking days that are the same in both languages
 FORMS = [{"people": ["coworker"], "gender": ["woman"], "topic": ["lunch"], "event": ["ate"], "sender_feels": "happy",
           "toward_you": "none"},
          {"people": [], "gender": [], "topic": ["rain"], "event": ["got wet"], "sender_feels": "tired",
@@ -32,17 +33,21 @@ def opened(path: str) -> Gut:
 
 def teach(gut: Gut, first: int, count: int) -> None:
     for index in range(first, first + count):
-        if gut.teach("owner", ("zh", "en")[index % 2], FORMS[index % 3], NOTES[index % 3], (85, 50, 41)[index % 3],
-                     ["喵", "本鲸", "nya"][: 1 + index % 3]):
+        if gut.teach(("owner", "friend")[index % 4 == 3], ("zh", "en")[index % 2], FORMS[index % 3], NOTES[index % 3],
+                     (85, 50, 41, 30)[index % 4], ["喵", "本鲸", "nya"][: 1 + index % 3], at=AT + index * 5 * 3600):
             gut.sleep()
 
 
 def read(path: str) -> dict:
     gut = opened(path)
-    return {"lessons": len(gut.net.lessons), "born": len(gut.net.born), "share": gut.net.share(),
-            "vectors": [gut.net.vector(form, closeness) for form in FORMS for closeness in (10, 85)],
-            "grown": gut.grown, "weights": gut.weights, "held": gut.held, "tone": gut.tone.v,
-            "languages": gut.languages, "sightings": [list(row) for row in gut.sightings],
+    net = gut.net
+    return {"lessons": net.lessons, "age": net.age, "born": net.born, "today": net.today, "learning": net.learning(),
+            "people": {subject: [found["n"], found["fade"], found["day"], net.weight(subject)]
+                       for subject, found in net.people.items()},
+            "vectors": [net.vector(form, closeness, who) for form in FORMS for closeness in (10, 85)
+                        for who in (None, "owner", "friend")],
+            "grown": gut.grown, "weights": gut.weights, "held": gut.held, "tone": gut.tone.kept(),
+            "settings": gut.settings, "languages": gut.languages, "sightings": [list(row) for row in gut.sightings],
             "heads": {language: head["names"] for language, head in sorted(gut.marks.heads.items())},
             "spoken": [gut.marks.speaks(language, form, 85) for language in ("zh", "en") for form in FORMS]}
 
@@ -63,6 +68,8 @@ def main() -> int:
         gut = opened(path)
         teach(gut, 25, 30)
         gut.write_side("三无", "你话很少。", 1.0)
+        gut.configure(tau=200.0, sensitivity=-0.5)
+        gut.tune("irritable", nature=-1.0)
         gut.close()
     elif command == "read":
         print(json.dumps(read(path), ensure_ascii=False))

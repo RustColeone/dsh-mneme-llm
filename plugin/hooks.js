@@ -167,9 +167,19 @@ export function open (config = {}, home) {
     embed: false, memoryLanguage: null, ...(config.companion ? { companionName: config.companion } : {}) })
   const gut = config.gut === false ? null : new Gut(path.join(folder, 'gut.db'), {
     starter: config.starter === false ? null : config.starter || STARTER, tags: config.tags || {},
-    wordsFrom: TEACH_FROM, ...(config.names ? { names: config.names } : {})
+    wordsFrom: TEACH_FROM, zone: mneme.memory.zone, ...(config.names ? { names: config.names } : {}),
+    ...(config.tau ? { tau: Number(config.tau) } : {})
   })
   return { mneme, gut, folder }
+}
+
+/** Her gut awake, with the plugin's `sensitivity` (敏感 1 to 钝感 -1) when it gives one. */
+export function wake (gut, config = {}) {
+  if (gut.awake) return
+  gut.wake()
+  const sensitivity = config.sensitivity === undefined || config.sensitivity === null || config.sensitivity === ''
+    ? null : Number(config.sensitivity)
+  if (sensitivity !== null && sensitivity !== gut.settings.sensitivity) gut.configure({ sensitivity })
 }
 
 export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest = null, home }) {
@@ -345,7 +355,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
     let count = 0
     for (const someone of mneme.everyone()) count += mneme.wipe(someone)
     if (tier === 'deep' || !gut) return { kind: 'success', text: told('new.deep', { count }) }
-    if (!gut.awake) gut.wake()
+    wake(gut, config)
     return { kind: 'success', text: told('new.gut', { count, lessons: await gut.wipe() }) }
   }
 
@@ -509,7 +519,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   /** Her gut's reading of the message, which starts at once. */
   function withTurn (agent, held) {
     if (held.alone || !gut || !modelOf(agent, config)) return held
-    if (!gut.awake) gut.wake()
+    wake(gut, config)
     return { ...held, turn: new Turn(gut, (messages, tokens) => ask(agent, messages, tokens), character, held.said,
       held.person.subject) }
   }

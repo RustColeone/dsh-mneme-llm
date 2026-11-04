@@ -33,7 +33,7 @@ const probe = spawnSync(PYTHON, ['-c', 'import mneme_llm, unicodedata; print(mne
   'unicodedata.unidata_version)'], { encoding: 'utf8' })
 const [version, unicode] = probe.status === 0 ? probe.stdout.trim().split(' ') : []
 const skip = probe.status !== 0 ? 'no Python with mneme-llm here (MNEME_LLM_PYTHON, PYTHONPATH)'
-  : !version.startsWith('0.4.') ? `mneme-llm ${version} is not 0.4` : false
+  : !version.startsWith('0.5.') ? `mneme-llm ${version} is not 0.5` : false
 if (skip && process.env.MNEME_LLM_REQUIRE) throw new Error(`MNEME_LLM_REQUIRE is set, and ${skip}`) // (CI: never skip)
 const folder = () => fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-compat-'))
 const tool = (name, ...args) => python([path.join(TOOLS, name), ...args])
@@ -83,10 +83,14 @@ test('a file Python wrote, with a link, is read here as Python reads it; what is
 function gutRead (file) {
   const gut = new G.Gut(file, { starter: STARTER, tags: { 傲娇: '你嘴硬心软。' } })
   gut.wake()
-  const forms = gutForms()
-  const found = { lessons: gut.net.lessons.length, born: gut.net.born.length, share: gut.net.share(),
-    vectors: forms.flatMap(form => [10, 85].map(closeness => gut.net.vector(form, closeness))), grown: gut.grown,
-    weights: gut.weights, held: gut.held, tone: gut.tone.v, languages: Object.fromEntries(gut.languages),
+  const forms = gutForms(), net = gut.net
+  const found = { lessons: net.lessons, age: net.age, born: net.born, today: net.today, learning: net.learning(),
+    people: Object.fromEntries([...net.people].map(([subject, item]) => [subject, [item.n, item.fade, item.day,
+      net.weight(subject)]])),
+    vectors: forms.flatMap(form => [10, 85].flatMap(closeness => [null, 'owner', 'friend'].map(who =>
+      net.vector(form, closeness, who)))), grown: gut.grown,
+    weights: gut.weights, held: gut.held, tone: gut.tone.kept(), settings: gut.settings,
+    languages: Object.fromEntries(gut.languages),
     sightings: gut.sightings.map(row => [row.subject, row.at, row.name, row.more, row.closeness, row.what]),
     heads: Object.fromEntries(Object.entries(gut.marks.heads).sort().map(([language, head]) => [language, head.names])),
     spoken: ['zh', 'en'].flatMap(language => forms.map(form => gut.marks.speaks(language, form, 85))) }
@@ -102,10 +106,17 @@ const gutForms = () => [
     toward_you: 'affection' }] // (tools/gutfile.py's)
 
 function sameGut (ours, theirs) {
-  const { vectors, ...rest } = ours, { vectors: wanted, ...others } = theirs
+  const { vectors, people, learning, ...rest } = ours
+  const { vectors: wanted, people: known, learning: rate, ...others } = theirs
   assert.deepEqual(rest, others)
+  assert.ok(Math.abs(learning - rate) < 1e-12)
+  assert.deepEqual(Object.keys(people), Object.keys(known))
+  for (const [subject, values] of Object.entries(people)) {
+    values.forEach((value, i) => assert.ok(value === known[subject][i] || Math.abs(value - known[subject][i]) < 1e-12,
+      `${subject} ${i}: ${value} against ${known[subject][i]}`))
+  }
   vectors.forEach((vector, i) => {
-    for (const name of G.MOODS) assert.ok(Math.abs(vector[name] - wanted[i][name]) < 1e-9, `${name}: ${vector[name]}`)
+    for (const end of G.ENDS) assert.ok(Math.abs(vector[end] - wanted[i][end]) < 1e-9, `${end}: ${vector[end]}`)
   })
 }
 
@@ -118,10 +129,13 @@ test('a gut file moves both ways', { skip }, async () => {
   const notes = [{ feel: { sweet: 0.6, jealous: 0.4 }, mood: 1 }, { feel: { tender: 1.0 }, mood: -1 },
     { feel: { worried: 0.7, sad: 0.3 }, mood: -2 }]
   for (let index = 25; index < 55; index++) {
-    if (gut.teach('owner', ['zh', 'en'][index % 2], gutForms()[index % 3], notes[index % 3], [85, 50, 41][index % 3],
-      ['喵', '本鲸', 'nya'].slice(0, 1 + index % 3))) await gut.sleep()
+    if (gut.teach(index % 4 === 3 ? 'friend' : 'owner', ['zh', 'en'][index % 2], gutForms()[index % 3],
+      notes[index % 3], [85, 50, 41, 30][index % 4], ['喵', '本鲸', 'nya'].slice(0, 1 + index % 3),
+      1767225600.0 + index * 5 * 3600)) await gut.sleep()
   }
   gut.writeSide('三无', '你话很少。', 1.0)
+  gut.configure({ tau: 200.0, sensitivity: -0.5 })
+  gut.tune('irritable', { nature: -1.0 })
   gut.close()
   sameGut(gutRead(file), JSON.parse(tool('gutfile.py', 'read', file)))
   const copy = path.join(where, 'python.db') // and the same lessons taught in Python give the same gut

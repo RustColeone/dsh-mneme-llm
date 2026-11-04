@@ -15,8 +15,8 @@ import { specs } from '../lib/tools.js'
 
 const P = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8')).cli
 const BIN = fileURLToPath(new URL('../bin/dsh-mneme-llm.js', import.meta.url))
-const PYTHON_SERVER = '"serverInfo": {"name": "mneme-llm", "version": "0.4.0"}'
-const SERVER = '"serverInfo": {"name": "dsh-mneme-llm", "version": "0.2.0"}'
+const PYTHON_SERVER = '"serverInfo": {"name": "mneme-llm", "version": "0.5.0"}'
+const SERVER = '"serverInfo": {"name": "dsh-mneme-llm", "version": "0.3.0"}'
 const BOUND = ['--db', 'mcp.db', '--config', 'companion.toml', 'mcp', '--subject', 'discord:42']
 const UNBOUND = ['--db', 'mcp2.db', '--config', 'companion.toml', 'mcp']
 
@@ -87,7 +87,7 @@ test('help, the version, and command lines as argparse reads them', async () => 
   const [code, out] = await run(['--help'])
   assert.ok(code === 0 && out.startsWith('usage: dsh-mneme-llm [-h] [--db DB]'), out)
   assert.ok(out.includes('  remember              keep a note'))
-  assert.deepEqual(await run(['--version']), [0, 'dsh-mneme-llm 0.2.0\n', ''])
+  assert.deepEqual(await run(['--version']), [0, 'dsh-mneme-llm 0.3.0\n', ''])
   const found = parse(['--sp', 'x', 'remember', 'a', '--imp', '4', '--', '--kind=plan'], { MNEME_LLM_DB: 'x.db' })
   assert.deepEqual([found.db, found.space, found.command, found.subject, found.text, found.kind, found.importance],
     ['x.db', 'x', 'remember', 'a', '--kind=plan', 'fact', 4])

@@ -15,7 +15,7 @@ import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 import * as G from '../lib/gut.js'
 import { Mneme } from '../lib/mneme.js'
-import { hooks, senderOf } from '../plugin/hooks.js'
+import { hooks, open, senderOf, wake } from '../plugin/hooks.js'
 
 /** One of DSH's packages: from DSH_MODULES when it is set (it must be there), else beside this one, else null. */
 async function dsh (name) {
@@ -173,10 +173,10 @@ test('a turn: the block beside her message, the exchange kept word for word, her
   assert.equal(h.gut.tags.傲娇, '你嘴硬心软。') // (drafted by her model the first time)
   const [kept] = h.mneme.episodes.after('owner', 0)
   assert.deepEqual([kept.lines, kept.conversation], [[['Leo', '今天加班好累'], ['小鲸', '辛苦了，抱抱你。']], 'dsh:s1'])
-  await until(() => h.mneme.memory.notes('owner').length === 1 && h.gut.net.lessons.length === 1)
+  await until(() => h.mneme.memory.notes('owner').length === 1 && h.gut.net.lessons === 1)
   assert.deepEqual(h.mneme.memory.notes('owner').map(note => note.text), ['Leo 最近经常加班'])
   assert.ok(h.mneme.mood.state('owner').value > 70)
-  assert.equal(h.gut.net.lessons.length, 1)
+  assert.equal(h.gut.net.lessons, 1)
   assert.ok(h.asked.some(request => request.system?.startsWith('You judge') && request.maxTokens === 1500))
   h.mneme.close()
   const m = new Mneme(path.join(h.home, 'mneme-llm', 'xiaojing', 'memory.db'), 'xiaojing', { embed: false })
@@ -320,13 +320,13 @@ test('the commands, typed as messages or from DSH\'s command list: no step, each
   assert.equal(await typed('$new everything'), '用法：$new、$new deep 或 $new gut。')
   assert.equal(await typed(sent('$new deep', { qq: '20002', nickname: '小明' }), channel),
     'Only the person she belongs to can do that.') // (小明 has said nothing she could read a language in)
-  await until(() => h.gut.net.lessons.length === 1)
+  await until(() => h.gut.net.lessons === 1)
   assert.equal(await typed(sent('$new deep'), channel), '1 段对话连同所有笔记，永久删除了。')
   assert.equal(h.mneme.episodes.count('owner'), 0)
-  assert.equal(h.gut.net.lessons.length, 1, 'her gut is apart from her memory')
+  assert.equal(h.gut.net.lessons, 1, 'her gut is apart from her memory')
   assert.equal((await h.commands['mneme-new'].handler({ rawInput: ' gut' })).text,
     '0 段对话连同所有笔记永久删除了，她的直觉学到的 1 条也一起删了：她回到了刚出生的样子。')
-  assert.equal(h.gut.net.lessons.length, 0)
+  assert.equal(h.gut.net.lessons, 0)
   h.mneme.close()
   h.gut.close()
 })
@@ -575,4 +575,15 @@ test('with no model yet there is no line, and the exchange is kept all the same;
   await turn(h, 'a task', 'done')
   assert.equal(h.mneme.episodes.count('owner'), 1)
   h.mneme.close()
+})
+
+test('her gut from the plugin\'s settings: her zone, how fast she grows up, and how hard things hit her', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-dsh-'))
+  const { mneme, gut } = open({ name: 'xiaojing', zone: 'Asia/Shanghai', tau: 300, sensitivity: 0.5 }, home)
+  wake(gut, { sensitivity: 0.5 })
+  assert.deepEqual(gut.zone, mneme.memory.zone)
+  assert.deepEqual([gut.settings.tau, gut.net.tau, gut.settings.sensitivity], [300, 300, 0.5])
+  assert.ok(gut.awake)
+  gut.close()
+  mneme.close()
 })

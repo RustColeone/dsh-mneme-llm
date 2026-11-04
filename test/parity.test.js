@@ -1,4 +1,4 @@
-// This package against Python's mneme-llm, without Python: test/fixtures/parity.json holds what mneme-llm 0.4.0 gives
+// This package against Python's mneme-llm, without Python: test/fixtures/parity.json holds what mneme-llm 0.5.0 gives
 // for the same inputs (tools/fixtures.py wrote it; CI writes it again from the released package and fails on a
 // difference).
 import assert from 'node:assert/strict'
@@ -35,8 +35,8 @@ const textOf = text => [T.terms(text), py.repr(T.tokens(text)), T.fold(text), T.
   T.blank(text), P.text.clips.map(n => T.clip(text, n)), P.text.fits.map(n => T.fit(text, n)), py.split(text).join(' ')]
 const near = (actual, expected) => close(assert, actual, expected)
 
-test('the fixtures are mneme-llm 0.4.0\'s, with the tokenizer this package has', () => {
-  assert.equal(P.mneme_llm, '0.4.0')
+test('the fixtures are mneme-llm 0.5.0\'s, with the tokenizer this package has', () => {
+  assert.equal(P.mneme_llm, '0.5.0')
   assert.equal(P.terms_version, T.version())
 })
 
@@ -108,29 +108,33 @@ test('who people are to her, as the prompt says it, as closeness fades', () => {
   store.close()
 })
 
-test('the gut born from its starter, and after a sleep, has Python\'s weights', async () => {
-  const [rows, words] = G.readStarter(STARTER)
+test('the gut born from its starter, and after lessons from three people and a sleep, has Python\'s weights', () => {
+  const [rows, words, known] = G.readStarter(STARTER)
   assert.equal(rows.length, P.gut.rows)
+  assert.deepEqual(known, P.gut.known)
   assert.deepEqual(words, {}, 'the starter holds feelings only: her words are her own')
   const base = { zh: { words: new Map([['哼', 40], ['好的', 120], ['呜呜', 200], ['喵', 1]]), n: 575 },
     en: { words: new Map([['nya', 2]]), n: 594 } } // (tools/fixtures.py's BASE)
   const net = new G.Net()
-  net.start(rows)
-  const forms = FORMS, feels = FEELS, vectors = () => forms.flatMap(form => [10, 85].map(closeness =>
-    net.vector(form, closeness)))
-  vectors().forEach((item, i) => near(item, P.gut.born[i]))
+  net.start(rows, known)
+  const forms = FORMS, feels = FEELS
+  forms.flatMap(form => [10, 85].map(closeness => net.vector(form, closeness)))
+    .forEach((item, i) => near(item, P.gut.born[i]))
   for (let index = 0; index < 30; index++) {
-    net.teach(forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3])
+    net.teach('abc'[index % 3], forms[index % 3], feels[index % 3], index % 3 - 1, [85, 50, 41][index % 3], G.ENDS,
+      Math.floor(index / 4))
   }
-  await net.sleep(30)
-  vectors().forEach((item, i) => near(item, P.gut.slept[i]))
-  assert.ok(Math.abs(net.share() - P.gut.share) < 2e-9)
+  net.sleep()
+  forms.flatMap(form => [10, 85].flatMap(closeness => [null, 'a', 'c'].map(who => net.vector(form, closeness, who))))
+    .forEach((item, i) => near(item, P.gut.slept[i]))
+  assert.ok(Math.abs(net.learning() - P.gut.learning) < 2e-9)
+  ;[...'abc'].forEach((who, i) => assert.ok(Math.abs(net.weight(who) - P.gut.weights[i]) < 2e-9))
   const marks = new G.Marks(base)
   for (let index = 0; index < 90; index++) {
     const words = ['喵', '本鲸', '呜呜', '哼', '嘿嘿', 'nya', '好的'].filter((_, j) => index % (j + 1) === 0)
     marks.teach(['zh', 'en'][index % 2], forms[index % 3], index % 5 - 2, [85, 50, 41][index % 3], words)
   }
-  marks.heads = await marks.trained(7)
+  return marks.trained(7).then(heads => { marks.heads = heads
   assert.deepEqual(Object.keys(marks.heads).sort(), Object.keys(P.gut.heads))
   for (const [language, head] of Object.entries(P.gut.heads)) {
     assert.deepEqual(marks.heads[language].names, head.names)
@@ -138,6 +142,7 @@ test('the gut born from its starter, and after a sleep, has Python\'s weights', 
   }
   assert.deepEqual(['zh', 'en'].flatMap(language => forms.flatMap(form => [41, 85].map(closeness =>
     marks.speaks(language, form, closeness)))), P.gut.spoken)
+  })
 })
 
 test('the scenario: what Python read from its file, and every row of that file, come out the same', async () => {

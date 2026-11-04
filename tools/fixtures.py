@@ -141,17 +141,16 @@ def relations_part() -> list:
 
 
 def gut_part() -> dict:
-    with gzip.open(ROOT / "starter.json.gz", "rt", encoding="utf-8") as file:
-        rows = [tuple(row) for row in json.load(file)["rows"]]
+    rows, _, known = G.read_starter(ROOT / "starter.json.gz")
     net = G.Net()
-    net.start(rows)
-    born = [{key: round(value, 9) for key, value in net.vector(form, closeness).items()} for form in FORMS
-            for closeness in (10, 85)]
+    net.start(rows, known)
+    nine = lambda found: {key: round(value, 9) for key, value in found.items()}
+    born = [nine(net.vector(form, closeness)) for form in FORMS for closeness in (10, 85)]
     for index in range(30):
-        net.teach(FORMS[index % 3], FEELS[index % 3], index % 3 - 1, (85, 50, 41)[index % 3])
-    net.sleep(seed=30)
-    slept = [{key: round(value, 9) for key, value in net.vector(form, closeness).items()} for form in FORMS
-             for closeness in (10, 85)]
+        net.teach("abc"[index % 3], FORMS[index % 3], FEELS[index % 3], index % 3 - 1, (85, 50, 41)[index % 3], G.ENDS,
+                  index // 4)
+    net.sleep()
+    slept = [nine(net.vector(form, closeness, who)) for form in FORMS for closeness in (10, 85) for who in (None, "a", "c")]
     marks = G.Marks(BASE)
     for index in range(90):
         words = [word for j, word in enumerate(["喵", "本鲸", "呜呜", "哼", "嘿嘿", "nya", "好的"]) if index % (j + 1) == 0]
@@ -160,7 +159,8 @@ def gut_part() -> dict:
     marks.heads = heads
     spoken = [marks.speaks(language, form, closeness) for language in ("zh", "en") for form in FORMS
               for closeness in (41, 85)]
-    return {"rows": len(rows), "born": born, "slept": slept, "share": round(net.share(), 9), "spoken": spoken,
+    return {"rows": len(rows), "known": list(known), "born": born, "slept": slept, "learning": round(net.learning(), 9),
+            "weights": [round(net.weight(who), 9) for who in "abc"], "spoken": spoken,
             "heads": {language: {"names": head["names"], "b": [round(value, 9) for value in head["b"]]}
                       for language, head in sorted(heads.items())}}
 
