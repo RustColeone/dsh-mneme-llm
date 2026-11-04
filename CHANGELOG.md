@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-11-04)
 
 Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whichever writes it.
 
@@ -36,11 +36,11 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
 - **A word she says mostly to one person is theirs** (`OWN`, 80% of its uses): their name or their in-joke shows in her
   line only with them, never to someone new.
 - **A panel in DeepSeek Harness** (`plugin/client.js`, the plugin's client half). On the plugin's page under Plugins:
-  her gut's settings, changed in the running plugin and kept in her gut file (`tau`, sensitivity, her age with a
-  "young again", and nature and now for each of her 24 ends, by bar), saved together. In the right sidebar, a tab
-  (Her gut, 她的直觉) with the star map of her heart and the people she knows, her bars lately against usual, SAN
-  and self-esteem, and how grown up she is, looking again every few seconds while it is in view; a button in the
-  conversation's header opens it. Light and dark themes, phone widths too. Both read and change her gut through three routes on DSH's own API,
+  her gut's settings, changed in the running plugin and kept in her gut file (`tau`, sensitivity, her age with a "young
+  again", and nature and now for each of her 24 ends, by bar), saved together. In the right sidebar, a tab (Her gut,
+  她的直觉) with the star map of her heart and the people she knows, her bars lately against usual, SAN and self-esteem, and
+  how grown up she is, looking again every few seconds while it is in view; a button in the conversation's header opens
+  it. Light and dark themes, phone widths too. Both read and change her gut through three routes on DSH's own API,
   behind its sign-in and for its owner only (`plugin/panel.js`).
 - **Her star map** (`lib/starmap.js`): every row of her heart is a star placed toward the ends it pulls her to (a
   softmax of its weights along her arms), as bright as it leans, in the colour of the bar of its strongest end; her
@@ -55,16 +55,11 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   cannot be read is an error, not a blank gut.
 - A gut file from 0.2 is lived again under these rules the first time it wakes; its lessons and starter teach only the
   seven feelings they knew.
-- **A new `starter.json.gz`:** a smaller birth with the 24 ends, 1,119 lessons, including the moments everyday chat
-  lacks (fear, blame, mockery, a rival, praise, shame, wanting quiet or a long talk, an apology, being let down). It
-  is a lean: her character's prompt gives the rest.
-
-## 0.2.0
-
-What she remembers about each person and how she feels, a command line and an MCP server, and a plugin that brings all
-of it into DeepSeek Harness. A file used by this version and by the Python package mneme-llm 0.4.0 stays one file,
-whichever writes it.
-
+- **A new `starter.json.gz`:** a smaller birth with the 24 ends, 1,096 lessons from notes that score every feeling,
+  including the moments everyday chat lacks (fear, blame, mockery, a rival, praise, shame, wanting quiet or a long talk,
+  an apology, being let down). It is a lean: her character's prompt gives the rest.  ## 0.2.0  What she remembers about
+  each person and how she feels, a command line and an MCP server, and a plugin that brings all of it into DeepSeek
+  Harness. A file used by this version and by the Python package mneme-llm 0.4.0 stays one file, whichever writes it.
 - **Notes.** `remember` with kinds, keys and their history, importance, feeling and dates; a daily quota for notes
   written by her model; `forget`, `purge` and pruning; recall by words (`recall`) and by meaning (`arecall`), with the
   reasons for what was chosen and what was skipped (`explain()`); the block for her prompt, the profile card, the
