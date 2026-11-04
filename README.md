@@ -322,7 +322,8 @@ sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --
   them counts, a lock on how she is with them, a nudge to each feeling with them alone, and forgetting them), and her
   sides: each sentence and weight, a new side, dropping one, and the side she is locked in with how often it shows.
 - **Her gut** (她的直觉), a tab in the right sidebar (the heart button in a conversation's header opens it): the star
-  map of her heart and the people she knows (each dot one thing she notices, placed toward the feeling it pulls her to, brighter the more it leans; the lines
+  map of her heart and the people she knows, flat or in 3D (her bars on a sphere, the two ends of each side by side;
+  drag to turn it) (each dot one thing she notices, placed toward the feeling it pulls her to, brighter the more it leans; the lines
   her arms, how much more or less of each feeling she has now than when she was born, the ring; each person she
   knows a big star), her 13 bars lately against usual, SAN and self-esteem, how grown up she is, and the people she
   knows with how much of how she is with each is theirs alone. It updates every few seconds while it is open,

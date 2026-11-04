@@ -20,6 +20,10 @@ window.__ModuleLoader__.load({
     const ARM = 2.0 // an arm is drawn at most this many base radii long
     const LABELS = 2.2 // and the names of the ends no further out than this
     const MOST = 0.7 // the most of how she is with someone that is theirs alone (`MOST` in lib/gut.js)
+    const EYE = 6.0 // in 3D, the eye is this many base radii from the middle: what is near looks a little bigger
+    const TURNING = 0.12 // in 3D, radians a second it turns by itself while nobody is turning it
+    const RESTS = 3000 // and milliseconds after a drag before it turns by itself again
+    const SAVED = 'dsh-mneme-llm.map3d' // (the browser keeps which view was chosen)
 
     // One colour for each of her 13 bars, in BARS order, spread round the colour wheel so that bars side by side
     // differ; the first end of a bar is a deeper shade and the second a lighter one, stepped for each theme.
@@ -56,6 +60,9 @@ window.__ModuleLoader__.load({
       'map.star': '{key}: leans to {end} ({bright})',
       'map.person': '{who}: {lessons} lessons, {weight}% of how she is with them is theirs',
       'map.pick': 'Tap or point at a star to see what it is.',
+      'map.view': 'View',
+      'map.turn': 'Drag to turn it; a few seconds later it turns slowly by itself. The two ends of each bar sit side ' +
+        'by side.',
       you: 'you',
       'bars.title': 'Lately against usual',
       'bars.hint': 'The bar is lately, the tick is usual; a two-sided bar leans from the middle toward one end.',
@@ -157,6 +164,8 @@ window.__ModuleLoader__.load({
       'map.star': '{key}：偏向 {end}（{bright}）',
       'map.person': '{who}：{lessons} 节课，她对这个人的样子里有 {weight}% 是专属于这个人的',
       'map.pick': '点一下或用手指指向一颗星星，看看它是什么。',
+      'map.view': '视图',
+      'map.turn': '拖动可以旋转它；几秒后它会自己慢慢转。每一条的两端并排挨在一起。',
       you: '你',
       'bars.title': '最近对比平常',
       'bars.hint': '实心条是最近，刻度线是平常；两端都能延伸的条会从中间偏向其中一端。',
@@ -427,6 +436,148 @@ window.__ModuleLoader__.load({
       return { points, people }
     }
 
+    /** A point of her 3D map seen from where the map is turned: across, down the screen, toward the eye, and how
+     * much nearer things look bigger. */
+    function project ([x, y, z], { yaw, pitch }) {
+      const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch)
+      const x1 = x * cy + z * sy, z1 = z * cy - x * sy
+      const y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp
+      const near = EYE / (EYE - z2)
+      return [x1 * near, -y2 * near, z2, near]
+    }
+
+    /** Her star map in 3D: her 24 ends on a sphere, each bar's two ends side by side; the nearer, the brighter.
+     * What was drawn where, for picking a star. */
+    function draw3d (canvas, map, view, dark, picked, t, turn) {
+      const width = Math.max(120, Math.round(canvas.getBoundingClientRect().width))
+      const ratio = window.devicePixelRatio || 1
+      if (canvas.width !== width * ratio) {
+        canvas.width = width * ratio
+        canvas.height = width * ratio
+      }
+      const g = canvas.getContext('2d')
+      g.setTransform(ratio, 0, 0, ratio, 0, 0)
+      g.clearRect(0, 0, width, width)
+      const half = width / 2, font = Math.max(9, Math.min(12, width / 36))
+      const scale = Math.max(0.55, Math.min(1, width / 520))
+      const ink = getComputedStyle(canvas).color
+      g.fillStyle = dark ? '#0a0d16' : 'rgba(127, 127, 127, 0.07)'
+      g.beginPath()
+      g.roundRect(0, 0, width, width, 12)
+      g.fill()
+      g.font = `${font}px system-ui, -apple-system, sans-serif`
+      const longest = Math.max(1, ...map.reach.map(reach => Math.min(ARM, reach)))
+      const R = Math.max(10, (half - 10 - 5 * font) / (longest * EYE / (EYE - longest) + 0.2)) // (as big as fits, names too)
+      const colour = map.ends.map(end => endColour(view.bars, end, dark))
+      const depth = z => Math.max(0, Math.min(1, (z + ARM) / (2 * ARM))) // 0 at the back, 1 at the front
+      const screen = at => {
+        const far = Math.hypot(...at), cut = far > ARM ? ARM / far : 1
+        const [x, y, z, near] = project(at.map(value => value * cut), turn)
+        return [half + x * R, half + y * R, z, near]
+      }
+      // the sphere she was born with, seen from outside; then her arms, the far ones fainter
+      g.strokeStyle = dark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.14)'
+      g.setLineDash([3, 4])
+      g.beginPath()
+      g.arc(half, half, R * EYE / Math.sqrt(EYE * EYE - 1), 0, 2 * Math.PI)
+      g.stroke()
+      g.setLineDash([])
+      const tips = map.directions.map((direction, k) => {
+        const arm = Math.min(ARM, map.reach[k])
+        const [x, y, z] = screen(direction.map(value => value * arm))
+        g.strokeStyle = colour[k]
+        g.globalAlpha = 0.15 + 0.4 * depth(z)
+        g.beginPath()
+        g.moveTo(half, half)
+        g.lineTo(x, y)
+        g.stroke()
+        g.globalAlpha = 1
+        return { k, x, y, z, label: screen(direction.map(value => value * Math.min(LABELS, arm + 0.15))) }
+      })
+      // the stars, from the back to the front
+      const brights = map.stars.map(star => star[2]).sort((one, other) => one - other)
+      const top = Math.max(0.05, brights[Math.floor(brights.length * 0.97)] ?? 1)
+      const placed = map.stars.map(star => [star, screen(star.slice(5, 8))]).sort((one, other) => one[1][2] - other[1][2])
+      const points = []
+      for (const [star, [px, py, z, near]] of placed) {
+        const lean = Math.min(1, star[2] / top), size = (0.7 + 2.3 * lean) * scale * near, front = depth(z)
+        g.fillStyle = colour[star[3]]
+        if (dark && lean > 0.5) {
+          g.globalCompositeOperation = 'lighter'
+          g.globalAlpha = 0.12 * lean * (0.4 + 0.6 * front)
+          g.beginPath()
+          g.arc(px, py, size * 3.2, 0, 2 * Math.PI)
+          g.fill()
+          g.globalCompositeOperation = 'source-over'
+        }
+        g.globalAlpha = (0.25 + 0.75 * lean) * (0.35 + 0.65 * front)
+        g.beginPath()
+        g.arc(px, py, size, 0, 2 * Math.PI)
+        g.fill()
+        points.push({ px, py, star, key: star[4] })
+      }
+      g.globalAlpha = 1
+      // the tips of her arms and the names of her ends, the front ones over the back
+      g.textBaseline = 'middle'
+      for (const tip of [...tips].sort((one, other) => one.z - other.z)) {
+        const front = depth(tip.z), [lx, ly] = tip.label
+        g.fillStyle = colour[tip.k]
+        g.globalAlpha = 0.4 + 0.6 * front
+        g.beginPath()
+        g.arc(tip.x, tip.y, 2.2, 0, 2 * Math.PI)
+        g.fill()
+        g.fillStyle = ink
+        g.globalAlpha = 0.3 + 0.6 * front
+        g.textAlign = lx < half - 2 ? 'right' : lx > half + 2 ? 'left' : 'center'
+        g.fillText(endName(t, view, map.ends[tip.k]), lx, ly)
+      }
+      g.globalAlpha = 1
+      // the people she knows, from the back to the front
+      const people = map.people.map(person => {
+        const [px, py, z, near] = screen(person.at)
+        return { px, py, z, size: (4 + 8 * Math.min(1, person.weight / MOST)) * scale * near, person }
+      }).sort((one, other) => one.z - other.z)
+      g.font = `600 ${font + 1}px system-ui, -apple-system, sans-serif`
+      for (const { px, py, z, size, person } of people) {
+        g.globalAlpha = 0.55 + 0.45 * depth(z)
+        if (dark) {
+          g.fillStyle = 'rgba(255, 255, 255, 0.14)'
+          g.beginPath()
+          g.arc(px, py, size * 2.4, 0, 2 * Math.PI)
+          g.fill()
+        }
+        g.fillStyle = dark ? '#ffffff' : '#1d1d1f'
+        g.strokeStyle = colour[person.end] ?? ink
+        g.lineWidth = 2
+        g.beginPath()
+        g.arc(px, py, size, 0, 2 * Math.PI)
+        g.fill()
+        g.stroke()
+        const label = person.subject === view.you ? view.youName : person.subject
+        const left = px + size + 4 + g.measureText(label).width > width - 4
+        g.textAlign = left ? 'right' : 'left'
+        g.lineWidth = 3
+        g.strokeStyle = dark ? '#0a0d16' : 'rgba(255, 255, 255, 0.9)'
+        g.strokeText(label, left ? px - size - 4 : px + size + 4, py)
+        g.fillStyle = ink
+        g.fillText(label, left ? px - size - 4 : px + size + 4, py)
+      }
+      g.globalAlpha = 1
+      g.lineWidth = 1
+      const shown = picked && (picked.person
+        ? people.find(item => item.person.subject === picked.person.subject)
+        : points.find(item => item.key === picked.key))
+      if (shown) {
+        g.strokeStyle = ink
+        g.lineWidth = 1.5
+        g.beginPath()
+        g.arc(shown.px, shown.py, (shown.size ?? 3) + 5, 0, 2 * Math.PI)
+        g.stroke()
+        g.lineWidth = 1
+      }
+      return { points: points.reverse(), people: people.reverse() } // (the front first, for picking)
+    }
+
     /** The star or person nearest a point on the map, within a finger's width. */
     function nearest (drawn, x, y) {
       let best = null, far = 14
@@ -443,30 +594,97 @@ window.__ModuleLoader__.load({
       return best
     }
 
+    /** Which view of her map the browser keeps: 3D or not. */
+    function remembered () {
+      try {
+        return window.localStorage?.getItem(SAVED) === '3d'
+      } catch {
+        return false
+      }
+    }
+
     function StarMap ({ map, view, t }) {
-      const canvas = useRef(null), drawn = useRef(null)
+      const canvas = useRef(null), drawn = useRef(null), turn = useRef({ yaw: 0.6, pitch: -0.32 })
+      const drag = useRef(null), rested = useRef(0), paintRef = useRef(null)
       const [picked, setPicked] = useState(null)
+      const [three, setThree] = useState(remembered)
+      const round = three && Array.isArray(map?.directions) // (a map from before 3D has no directions)
       useEffect(() => setPicked(null), [map]) // (a new map: what was picked may be elsewhere now)
       useEffect(() => {
         const element = canvas.current
         if (!element || !map) return
-        const paint = () => { drawn.current = draw(element, map, view, isDark(element), picked, t) }
+        const paint = () => {
+          drawn.current = round ? draw3d(element, map, view, isDark(element), picked, t, turn.current)
+            : draw(element, map, view, isDark(element), picked, t)
+        }
+        paintRef.current = paint
         paint()
         const resized = new ResizeObserver(paint)
         resized.observe(element)
         const themed = new MutationObserver(paint) // (DSH marks its theme on the page)
         themed.observe(document.documentElement, { attributes: true })
         if (document.body) themed.observe(document.body, { attributes: true })
+        // in 3D, it turns slowly by itself while it is in view and nobody is turning it (not for reduced motion)
+        let frame = null, last = null, painted = 0, seen = true
+        const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        const watched = typeof IntersectionObserver === 'function'
+          ? new IntersectionObserver(entries => { seen = entries.some(entry => entry.isIntersecting) }) : null
+        watched?.observe(element)
+        const tick = at => {
+          if (last !== null && seen && !document.hidden && !drag.current && Date.now() - rested.current > RESTS) {
+            turn.current.yaw += TURNING * Math.min(0.1, (at - last) / 1000)
+            if (at - painted >= 33) { // (about 30 a second: it turns slowly, and the page has other work)
+              paint()
+              painted = at
+            }
+          }
+          last = at
+          frame = window.requestAnimationFrame(tick)
+        }
+        if (round && !still && window.requestAnimationFrame) frame = window.requestAnimationFrame(tick)
         return () => {
           resized.disconnect()
           themed.disconnect()
+          watched?.disconnect()
+          if (frame !== null) window.cancelAnimationFrame(frame)
         }
-      }, [map, view, picked, t])
+      }, [map, view, picked, t, round])
+      const choose = value => {
+        setThree(value)
+        try {
+          window.localStorage?.setItem(SAVED, value ? '3d' : '2d')
+        } catch {}
+      }
       const point = event => {
         if (!drawn.current) return
         const box = canvas.current.getBoundingClientRect()
         const found = nearest(drawn.current, event.clientX - box.left, event.clientY - box.top)
         if ((found?.key ?? found?.person?.subject) !== (picked?.key ?? picked?.person?.subject)) setPicked(found)
+      }
+      const down = event => {
+        if (round) {
+          drag.current = { x: event.clientX, y: event.clientY, moved: 0 }
+          try {
+            event.currentTarget.setPointerCapture?.(event.pointerId)
+          } catch {} // (a pointer the page no longer holds: the drag goes on without it)
+        } else point(event)
+      }
+      const move = event => {
+        const held = drag.current
+        if (!round || !held) return point(event)
+        const dx = event.clientX - held.x, dy = event.clientY - held.y
+        held.x = event.clientX
+        held.y = event.clientY
+        held.moved += Math.abs(dx) + Math.abs(dy)
+        turn.current.yaw += dx * 0.01
+        turn.current.pitch = Math.max(-1.4, Math.min(1.4, turn.current.pitch + dy * 0.01))
+        paintRef.current?.()
+      }
+      const up = event => {
+        const held = drag.current
+        drag.current = null
+        rested.current = Date.now()
+        if (round && held && held.moved < 5) point(event) // (a tap, not a turn)
       }
       let caption = t('map.pick')
       if (picked?.person) {
@@ -479,9 +697,14 @@ window.__ModuleLoader__.load({
           bright: fixed(bright) })
       }
       return h('div', { className: 'mnl-map' },
-        h('canvas', { ref: canvas, className: 'mnl-canvas', role: 'img', 'aria-label': t('map.caption'),
-          onPointerMove: point, onPointerDown: point }),
+        h('div', { className: 'mnl-switch', role: 'group', 'aria-label': t('map.view') },
+          [false, true].map(value => h('button', { key: String(value), type: 'button', 'aria-pressed': three === value,
+            className: three === value ? 'mnl-chosen' : '', onClick: () => choose(value) }, value ? '3D' : '2D'))),
+        h('canvas', { ref: canvas, className: round ? 'mnl-canvas mnl-turning' : 'mnl-canvas', role: 'img',
+          'aria-label': t('map.caption'), onPointerMove: move, onPointerDown: down, onPointerUp: up,
+          onPointerCancel: up }),
         h('div', { className: 'mnl-pick' }, caption),
+        round ? h('div', { className: 'mnl-dim' }, t('map.turn')) : null,
         h('div', { className: 'mnl-dim' }, t(map.probed >= 20 ? 'map.counts' : 'map.born',
           { stars: map.stars.length, rows: map.rows, probed: map.probed })),
         h('div', { className: 'mnl-dim' }, t('map.caption')))
@@ -948,6 +1171,12 @@ window.__ModuleLoader__.load({
 .mnl-map { display: flex; flex-direction: column; gap: 6px }
 .mnl-canvas { width: 100%; max-width: 560px; aspect-ratio: 1; align-self: center; touch-action: manipulation;
   color: var(--dsw-alias-label-secondary, #666); display: block }
+.mnl-switch { display: inline-flex; align-self: flex-end; border-radius: 8px; overflow: hidden;
+  border: .5px solid var(--dsw-alias-border-l4, rgba(128,128,128,.5)) }
+.mnl-switch button { height: 26px; padding: 0 12px; border: 0; font: inherit; font-size: 12px; color: inherit;
+  background: transparent; cursor: pointer }
+.mnl-turning { cursor: grab; touch-action: none }
+.mnl-turning:active { cursor: grabbing }
 .mnl-pick { font-size: 12px; min-height: 18px; color: var(--dsw-alias-label-secondary, #666); overflow-wrap: anywhere }
 .mnl-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
 .mnl-level { border: .5px solid var(--dsw-alias-border-l3, rgba(128,128,128,.3)); border-radius: 12px;

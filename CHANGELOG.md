@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Her star map in 3D**, a switch on her tab (2D or 3D, kept by the browser): her 13 bars spread over a sphere, the
+  two ends of each bar side by side (24 degrees apart, every other bar's ends more than 40 away), so a row pulled to
+  both ends of a bar goes out between them. Drag to turn it; it turns slowly by itself while nobody does (not with
+  reduced motion, and not while out of view). `starmap` gives each star and person a place in 3D, and `DIRECTIONS`.
+- **Her arms are a difference now**, not a ratio: 1 as she was born, longer by `GAIN` (3) for each 1 of strength she
+  has gained on an end, from 0.3 to 2.4. A feeling she was born with little of no longer flies out for a small gain.
+
 ## 0.3.0 (2026-11-04)
 
 Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whichever writes it.
