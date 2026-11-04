@@ -24,6 +24,7 @@ import gzip
 import hashlib
 import json
 import random
+import re
 import sys
 import tempfile
 from collections import Counter
@@ -572,6 +573,21 @@ def build() -> dict:
     }
 
 
+CHOICES = re.compile(r"\(choose from ([^)]*)\)")
+
+
+def unquoted(value):
+    """argparse's "invalid choice" without quotes around the choices: newer Pythons quote them (3.13.18 does, 3.13.5
+    does not), and that is not mneme-llm's to give."""
+    if isinstance(value, str):
+        return CHOICES.sub(lambda found: f"(choose from {found.group(1).replace(chr(39), '')})", value)
+    if isinstance(value, list):
+        return [unquoted(item) for item in value]
+    if isinstance(value, dict):
+        return {key: unquoted(item) for key, item in value.items()}
+    return value
+
+
 def first_difference(kept, given, where: str = "") -> str:
     """Where two fixtures part first, and what each holds there."""
     if isinstance(kept, dict) and isinstance(given, dict):
@@ -589,10 +605,11 @@ def first_difference(kept, given, where: str = "") -> str:
 def main() -> int:
     found = build()
     if "--check" in sys.argv[1:]:
-        kept = json.loads(TARGET.read_text(encoding="utf-8"))
-        if kept != json.loads(json.dumps(found)):
+        kept = unquoted(json.loads(TARGET.read_text(encoding="utf-8")))
+        found = unquoted(json.loads(json.dumps(found)))
+        if kept != found:
             for key in found:
-                if json.loads(json.dumps(found[key])) != kept.get(key):
+                if found[key] != kept.get(key):
                     print(f"{TARGET.name}: {key} differs from what mneme-llm {mneme_llm.__version__} gives",
                           file=sys.stderr)
                     print(first_difference(kept.get(key), json.loads(json.dumps(found[key]))), file=sys.stderr)
