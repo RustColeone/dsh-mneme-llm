@@ -11,6 +11,7 @@ import { Readable } from 'node:stream'
 import { mock, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { main, parse } from '../lib/cli.js'
+import { Gut } from '../lib/gut.js'
 import { specs } from '../lib/tools.js'
 
 const P = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8')).cli
@@ -81,6 +82,38 @@ test('the MCP server over a real stdio pipe: the handshake, Python\'s tool list,
   assert.deepEqual(found, wanted)
   assert.deepEqual(JSON.parse(found[1]).result.tools, specs('mcp'))
   assert.equal(await exited, 0)
+})
+
+test('the gut command sets her dials and locks, and relate locks closeness', async () => {
+  const where = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-gut-')), file = path.join(where, 'her.gut.db')
+  const gut = (...args) => run(['gut', '--file', file, ...args])
+  assert.equal((await gut('show'))[0], 2) // no file: nothing is made
+  const made = new Gut(file)
+  made.wake()
+  const form = { people: [], gender: [], topic: ['rain'], event: ['rained'], sender_feels: 'tired', toward_you: 'none' }
+  for (let i = 0; i < 30; i++) made.teach('discord:1', 'zh', form, { feel: { jealous: 0.8 }, mood: 1 }, 85, [])
+  made.close()
+  assert.equal((await gut('set', '--tau', '200', '--sensitivity', '-0.5', '--lock'))[0], 0)
+  assert.equal((await gut('tune', 'sweet', '--nature', '1.5', '--person', 'discord:1'))[0], 0)
+  assert.equal((await gut('tune', 'sad', '--now', '0.4', '--person', 'discord:1'))[0], 2)
+  assert.equal((await gut('person', 'discord:1', '--weight', '0.3', '--lock'))[1].trim(),
+    '{"nudge": {"sweet": 1.5}, "weight": 0.3, "locked": true}')
+  assert.equal((await gut('side', '病娇', '--lock'))[2].trim(),
+    '病娇 is not one of her sides yet: give it a sentence (what she does)')
+  const [, side] = await gut('side', '病娇', '--lock', '--often', '0.5', '--what', '你离不开对方。')
+  assert.deepEqual(JSON.parse(side).side, { name: '病娇', often: 0.5 })
+  const found = JSON.parse((await gut('show'))[1])
+  assert.deepEqual([found.tau, found.sensitivity, found.locked, found.held], [200, -0.5, true, ['病娇']])
+  assert.equal((await gut('side', '--unlock'))[0], 0)
+  assert.equal(JSON.parse((await gut('show'))[1]).side, null)
+  assert.equal((await gut('person', 'discord:1', '--forget'))[1].trim(), 'forgotten: 30 lessons lost their name')
+  const db = ['--db', path.join(where, 'm.db'), '--space', 's']
+  await run([...db, 'relate', 'amy', 'friend', '--closeness', '50'])
+  assert.match((await run([...db, 'relate', 'amy', '--lock', '--closeness', '75']))[1], /^amy: friend, closeness 75, locked/)
+  assert.match((await run([...db, 'relations']))[1], /amy: friend, closeness 75, locked/)
+  assert.doesNotMatch((await run([...db, 'relate', 'amy', '--unlock']))[1], /locked/)
+  assert.equal((await run([...db, 'relate', 'amy', '--lock', '--closeness', '95']))[2].trim(),
+    'closeness for friend is a number from 20 to 90')
 })
 
 test('help, the version, and command lines as argparse reads them', async () => {

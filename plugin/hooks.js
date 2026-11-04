@@ -215,7 +215,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   ctx.inject(['connection'], scope => serve(scope.connection, () => {
     if (gut) wake(gut, config)
     return gut
-  }, { you: subject, companion: mneme.companionName }))
+  }, { you: subject, companion: mneme.companionName, memory: mneme }))
 
   /** The person a sender is: you (in DSH, or on an account of yours), or someone she meets, who is to her what
    * `others` says until you say more. */

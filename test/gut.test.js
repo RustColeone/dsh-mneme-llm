@@ -72,6 +72,9 @@ test('slow levels, sensitivity, the line, notes and readings', () => {
     G.vector('{"feeling": {"irritable": 0.55, "cheeky": 0.6}}'),
     G.vector('{"feelings": [{"feeling": "calm", "strength": 0.7}, {"name": "shy", "intensity": 0.2}]}')], V.vector)
   assert.equal(G.vector('{"sad": "x"}'), null)
+  const every = { ...Object.fromEntries(G.ENDS.map(end => [end, 0])), sad: 0.1, sweet: 0.7 }
+  assert.deepEqual(G.written(JSON.stringify({ mood: -1, feel: every })), { feel: { sad: 0.1, sweet: 0.7 }, mood: -1 })
+  assert.ok(G.ENDS.every(end => G.NOTE.includes(` ${end},`) || G.NOTE.includes(` ${end}.`))) // her note scores them all
   assert.deepEqual(['今天好累', '今日好攰', 'おはよう', 'hello'].map(G.languageOf), V.languages)
 })
 
@@ -204,8 +207,11 @@ test('her settings stay, a tune fades as she lives, and an age can be set young 
   const where = file()
   const gut = new G.Gut(where)
   gut.wake()
-  assert.deepEqual(gut.configure({ tau: 300, sensitivity: 0.5 }), { tau: 300, sensitivity: 0.5, nudge: {} })
-  for (const bad of [{ tau: 0 }, { tau: true }, { sensitivity: 2 }]) assert.throws(() => gut.configure(bad))
+  assert.deepEqual(gut.configure({ tau: 300, sensitivity: 0.5 }), { tau: 300, sensitivity: 0.5, nudge: {}, locked: false,
+    people: {}, side: null })
+  for (const bad of [{ tau: 0 }, { tau: true }, { sensitivity: 2 }, { locked: 1 }]) {
+    assert.throws(() => gut.configure(bad))
+  }
   gut.tune('irritable', { nature: -2 })
   assert.throws(() => gut.tune('angry', { now: 0.3 }))
   assert.throws(() => gut.tune('irritable', { nature: 4 }))
@@ -222,10 +228,74 @@ test('her settings stay, a tune fades as she lives, and an age can be set young 
   gut.close()
   const again = new G.Gut(where)
   again.wake()
-  assert.deepEqual(again.settings, { tau: 300, sensitivity: 0.5, nudge: { irritable: -2 } })
+  assert.deepEqual(again.settings, { tau: 300, sensitivity: 0.5, nudge: { irritable: -2 }, locked: false, people: {},
+    side: null })
   assert.equal(again.report().age, 0)
   await again.wipe()
   assert.equal(again.settings.tau, 300) // a wipe takes what she learned, not her settings
+  again.close()
+})
+
+test('locked by hand: her heart, each person, a side shown in its share of turns', async () => {
+  const where = file(), gut = new G.Gut(where)
+  gut.wake()
+  const teach = (count, feel = JEALOUS, subject = 'discord:1') => {
+    for (let i = 0; i < count; i++) gut.teach(subject, 'zh', FORM, { feel, mood: 1 }, 85, ['喵'])
+  }
+  teach(30)
+  gut.configure({ locked: true })
+  const felt = gut.net.vector(FORM, 85), age = gut.net.age
+  teach(60, { scornful: 0.9 })
+  await gut.sleep()
+  assert.deepEqual([gut.net.vector(FORM, 85), gut.net.age], [felt, age]) // her heart: as it was
+  assert.ok(gut.net.vector(FORM, 85, 'discord:1').scornful > 0.3) // how she is with them: still learning
+  gut.configure({ locked: false })
+  const learned = gut.net.weight('discord:1')
+  const before = [gut.net.vector(FORM, 85, 'discord:1'), gut.net.vector(FORM, 85, 'discord:2')]
+  assert.deepEqual(gut.tunePerson('discord:1', { end: 'sweet', nature: 2.5 }), { nudge: { sweet: 2.5 } })
+  const sweet = before[0].sweet / (1 - before[0].sweet) * Math.exp(2.5) // (a nudge is added before the end is read)
+  assert.ok(Math.abs(gut.net.vector(FORM, 85, 'discord:1').sweet - sweet / (1 + sweet)) < 1e-9)
+  assert.deepEqual(gut.net.vector(FORM, 85, 'discord:2'), before[1]) // with them alone
+  gut.tunePerson('discord:1', { weight: 0 })
+  assert.equal(gut.net.weight('discord:1'), 0)
+  gut.tunePerson('discord:1', { weight: 'learned' })
+  assert.equal(gut.net.weight('discord:1'), learned)
+  for (const bad of [{ end: 'sweet' }, { end: 'angry', nature: 1 }, { end: 'sweet', nature: 4 }, { weight: 1.5 },
+    { weight: 'some' }, { locked: 'yes' }]) assert.throws(() => gut.tunePerson('discord:1', bad))
+  gut.tunePerson('discord:1', { locked: true })
+  const theirs = gut.net.vector(FORM, 85, 'discord:1')
+  teach(40, { scornful: 0.9 })
+  for (let day = 1; day < 60; day++) {
+    gut.teach('discord:2', 'zh', OTHER, { feel: { calm: 0.5 }, mood: 0 }, 20, [], 1.8e9 + day * 86400)
+  }
+  await gut.sleep()
+  assert.equal(gut.net.weight('discord:1'), learned) // a locked person does not fade, and teaches nothing
+  assert.ok(Math.abs(gut.net.vector(FORM, 85, 'discord:1').sweet - theirs.sweet) < 1e-6)
+  assert.throws(() => gut.lockSide('病娇'), /give it a sentence/)
+  assert.throws(() => gut.lockSide('龙傲天', { what: '你很狂。' }))
+  assert.throws(() => gut.lockSide('病娇', { often: 2, what: '你离不开对方。' }))
+  gut.writeSide('御姐', '你从容，不撒娇。', 50)
+  gut.lockSide('病娇', { often: 0.25, what: '你离不开对方，别人一靠近就紧张。' })
+  assert.deepEqual(gut.holding(), ['病娇'])
+  const rolls = [0.1, 0.5, 0.9, 0.3]
+  let turn = 0
+  gut.roll = () => rolls[turn++ % 4]
+  const shown = Array.from({ length: 40 }, () => gut.feel(FORM, null, 10, 0, 'zh').told.includes('病娇'))
+  assert.equal(shown.filter(Boolean).length, 10) // one turn in four, and for a stranger too
+  assert.deepEqual(gut.holding(Date.now() / 1000 + 400 * 86400), ['病娇']) // no month ends it
+  gut.close()
+  const again = new G.Gut(where)
+  again.wake()
+  assert.deepEqual(again.report().side, { name: '病娇', often: 0.25 })
+  assert.deepEqual(again.report().hands, { 'discord:1': { nudge: { sweet: 2.5 }, locked: true } })
+  again.unlockSide()
+  assert.deepEqual([again.settings.side, again.holding()], [null, ['病娇']]) // a month in it first, then drawn
+  again.lockSide('御姐')
+  again.dropSide('御姐')
+  assert.equal(again.settings.side, null)
+  again.tunePerson('discord:3', { end: 'stern', nature: 1 })
+  await again.forget('discord:3')
+  assert.equal(Object.hasOwn(again.settings.people, 'discord:3'), false) // forgotten: what was set for them goes too
   again.close()
 })
 

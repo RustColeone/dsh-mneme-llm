@@ -136,6 +136,11 @@ test('a gut file moves both ways', { skip }, async () => {
   gut.writeSide('三无', '你话很少。', 1.0)
   gut.configure({ tau: 200.0, sensitivity: -0.5 })
   gut.tune('irritable', { nature: -1.0 })
+  gut.tunePerson('owner', { end: 'sweet', nature: 1.5 })
+  gut.tunePerson('owner', { weight: 0.4 })
+  gut.tunePerson('friend', { locked: true })
+  gut.lockSide('三无', { often: 0.5 })
+  gut.configure({ locked: true })
   gut.close()
   sameGut(gutRead(file), JSON.parse(tool('gutfile.py', 'read', file)))
   const copy = path.join(where, 'python.db') // and the same lessons taught in Python give the same gut

@@ -6,7 +6,9 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
 
 - **Her feelings are 24 ends on 13 bars** (`BARS`, `ENDS`, `CHINESE`, `FEELINGS`): 难过 or 开心, 担心 or 踏实, 慌乱·崩溃 or
   平静, 嫌弃 or 甜蜜, 严厉 or 温柔, 易怒 or 平和, 委屈 or 不服, 羞愧 or 得意, 害羞 or 调皮, 胆小 or 大胆, 内向 or 外向, and 吃醋 and
-  心疼. Each end is a strength of its own, so both ends of a bar can be strong at once. `MOODS` and `NORMAL` are gone.
+  心疼. Each end is a strength of its own, so both ends of a bar can be strong at once. Her note scores all 24 (0 to 1),
+  so a quiet feeling teaches as what it is rather than as nothing (`NOTE`, `NOTED_TOKENS`). `MOODS` and `NORMAL` are
+  gone.
 - **Her heart and the people she knows.** Her heart learns from people at closeness 40 or more by closeness tier; each
   person has a table holding only what is different with them, learned from anyone, read on top of her heart and
   counting more as she knows them. A talking day without someone fades them back toward her heart. `Gut.feel` takes
@@ -22,6 +24,15 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   judge's level for it, `relations.liking` (0.25) points a level times the room left in the band that way; a talk
   that leaves her as she was moves nothing. `new Relations(store, space, { liking })` replaces `growth`, and
   `relations.growth` is read from older files but no longer used.
+- **Locks and dials by hand,** as in mneme-llm 0.5.0: `configure({ locked })` stops her heart learning and growing up;
+  `tunePerson(subject, { end, nature, weight, locked })` sets how she is with one person (a nudge with them alone, how
+  much what is different with them counts, a lock: what they say teaches nothing and they do not fade);
+  `lockSide(name, { often, what })` keeps her in one side for good, shown in that share of her turns, and `unlockSide()`
+  draws again; `Relations.lock(subject, closeness)` and `unlock` keep a person's closeness where it is put
+  (`relations.locked` in the config). `dsh-mneme-llm gut` (`show`, `set`, `tune`, `person`, `side`) and
+  `dsh-mneme-llm relate --lock/--unlock` do the same from the command line, and the panel's settings do it on DSH's
+  page, with each person (closeness, its lock, how much theirs counts, a lock, a nudge to each feeling, forget) and her
+  sides (each sentence and weight, a new one, dropping one, the side locked and how often it shows).
 - **A word she says mostly to one person is theirs** (`OWN`, 80% of its uses): their name or their in-joke shows in her
   line only with them, never to someone new.
 - **A panel in DeepSeek Harness** (`plugin/client.js`, the plugin's client half). On the plugin's page under Plugins:

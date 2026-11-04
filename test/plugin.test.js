@@ -622,7 +622,8 @@ test('her panel\'s routes on DSH\'s API: her gut woken with the plugin\'s settin
   assert.ok(h.gut.awake)
   assert.deepEqual([shown.you, shown.companion, shown.report.sensitivity], ['owner', '小鲸', 0.3])
   assert.equal((await ask('/api/mneme-llm.change', { tau: 90 })).report.tau, 90)
-  assert.deepEqual(h.gut.settings, { tau: 90, sensitivity: 0.3, nudge: {} })
+  assert.deepEqual(h.gut.settings, { tau: 90, sensitivity: 0.3, nudge: {}, locked: false, people: {},
+    side: null })
   assert.ok((await ask('/api/mneme-llm.starmap')).stars.length > 100) // (her starter's rows)
   h.gut.close()
   h.mneme.close()

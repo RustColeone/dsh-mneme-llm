@@ -1,7 +1,7 @@
 """A gut file through Python's mneme-llm, for test/compat.test.js: what it writes, and what it reads from any gut file.
 
     python3 tools/gutfile.py write FILE     a gut born from starter.json.gz, taught, with a side grown and one written
-    python3 tools/gutfile.py more FILE      more lessons and a side on a gut file someone else wrote
+    python3 tools/gutfile.py more FILE      more lessons, a side and her locks on a gut file someone else wrote
     python3 tools/gutfile.py read FILE      what waking from FILE gives, as JSON
 """
 
@@ -70,6 +70,11 @@ def main() -> int:
         gut.write_side("三无", "你话很少。", 1.0)
         gut.configure(tau=200.0, sensitivity=-0.5)
         gut.tune("irritable", nature=-1.0)
+        gut.tune_person("owner", "sweet", 1.5)
+        gut.tune_person("owner", weight=.4)
+        gut.tune_person("friend", locked=True)
+        gut.lock_side("三无", .5)
+        gut.configure(locked=True)
         gut.close()
     elif command == "read":
         print(json.dumps(read(path), ensure_ascii=False))
