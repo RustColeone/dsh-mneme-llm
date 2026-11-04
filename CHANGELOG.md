@@ -24,6 +24,9 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   cannot be read is an error, not a blank gut.
 - A gut file from 0.2 is lived again under these rules the first time it wakes; its lessons and starter teach only the
   seven feelings they knew.
+- **A new `starter.json.gz`:** a smaller birth with the 24 ends, 1,119 lessons, including the moments everyday chat
+  lacks (fear, blame, mockery, a rival, praise, shame, wanting quiet or a long talk, an apology, being let down). It
+  is a lean: her character's prompt gives the rest.
 
 ## 0.2.0
 
