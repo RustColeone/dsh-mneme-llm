@@ -263,6 +263,19 @@ test('her word habits: in her line for everyone, or with `wordsFrom` only for pe
   close.close()
 })
 
+test('a word she says mostly to one person is theirs', async () => {
+  const marks = new G.Marks({ zh: { words: new Map(), n: 100 } })
+  for (let index = 0; index < 30; index++) {
+    marks.teach('zh', FORM, 1, 85, index % 2 ? ['阿杰', '喵'] : ['喵'], index % 2 ? 'jie' : 'sis')
+  }
+  marks.heads = await marks.trained()
+  assert.deepEqual(marks.heads.zh.owners, { 阿杰: 'jie' })
+  assert.ok(marks.speaks('zh', FORM, 85, 2.0, 0.35, 'jie').includes('阿杰'))
+  assert.ok(!marks.speaks('zh', FORM, 85, 2.0, 0.35, 'sis').includes('阿杰'))
+  assert.ok(!marks.speaks('zh', FORM, 85).includes('阿杰')) // someone new
+  assert.ok(marks.speaks('zh', FORM, 85).includes('喵'))
+})
+
 test('a side is only a name on the list', () => {
   assert.throws(() => new G.Gut('x', { tags: { 草莓: 'x' } }))
   assert.throws(() => new G.Gut('x', { tags: { 草莓: 'x' }, names: ['别的'] }))

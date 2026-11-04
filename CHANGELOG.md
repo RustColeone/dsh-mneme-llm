@@ -18,6 +18,8 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   far from usual.
 - **Settings:** `new Gut(file, { tau, zone })`, `configure({ tau, sensitivity })`, `tune(end, { now, nature })`,
   `setAge(lessons)`. They outlast `wipe`. The plugin takes `tau` and `sensitivity`, and gives her gut her time zone.
+- **A word she says mostly to one person is theirs** (`OWN`, 80% of its uses): their name or their in-joke shows in her
+  line only with them, never to someone new.
 - **Forgetting a person** removes how she is with them, their name from the gut's lessons and the sides only they
   wanted; what they did to her heart stays.
 - **Fixed:** an objection while she was in a side she was given counted against a side that had grown; a starter that
