@@ -1,5 +1,5 @@
 // The plugin's client half, for DSH's web page, which loads it as a plugin bundle (React is all it needs): her gut's
-// settings on the plugin's page under Plugins, and a tab in the right sidebar, 她的心 · Her gut, with her star map,
+// settings on the plugin's page under Plugins, and a tab in the right sidebar, Her gut (她的直觉), with her star map,
 // her bars lately against usual, SAN and self-esteem, how grown up she is and the people she knows. A button in the
 // conversation's header opens the tab. Everything is read and changed through the plugin's routes on DSH's own API
 // (plugin/panel.js), which DSH signs people in to.
@@ -39,14 +39,14 @@ window.__ModuleLoader__.load({
     }
 
     const EN = {
-      'tab.title': '她的心 · Her gut',
+      'tab.title': 'Her gut',
       'tab.description': 'Her star map, how she feels lately, how grown up she is, and the people she knows',
-      'header.open': '她的心 · Her gut',
+      'header.open': 'Her gut',
       loading: 'Reading her gut…',
       unreachable: 'Her gut cannot be reached ({error}): the plugin is off, has not started, or keeps no gut.',
       updated: 'as of {time}',
       lessons: '{lessons} lessons',
-      'map.title': 'Star map',
+      'map.title': 'Star map: her heart and the people she knows',
       'map.caption': 'Each dot is one thing she notices, placed toward the feeling it pulls her to; the brighter, ' +
         'the more it leans. The lines are her arms: how much more or less of each feeling she has now than when ' +
         'she was born (the ring). The big stars are people.',
@@ -70,7 +70,7 @@ window.__ModuleLoader__.load({
       'people.none': 'Nobody yet.',
       'people.row': '{lessons} lessons · {weight}% theirs',
       'settings.summary': 'Her gut: how fast she grows up, how hard things hit her, and each feeling by hand',
-      'settings.title': '她的心 · Her gut',
+      'settings.title': 'Her gut',
       'settings.intro': 'Her gut\'s settings. A save goes to the running plugin at once and is kept in her gut ' +
         'file (gut.db); from then on these win over tau and sensitivity in the plugin\'s configuration, which only ' +
         'start a gut that has no settings of its own.',
@@ -101,55 +101,59 @@ window.__ModuleLoader__.load({
     }
     const ZH = {
       ...EN,
-      'tab.description': '她的星图、最近的感受、长大了多少、她认识的人',
-      loading: '正在读她的心……',
-      unreachable: '连不上她的心（{error}）：插件没开、还没启动，或者设成了不要直觉（gut: false）。',
-      updated: '更新于 {time}',
-      lessons: '学过 {lessons} 次',
-      'map.title': '星图',
-      'map.caption': '每个点是她会注意到的一件事，落在它让她偏向的那种感受一边；越亮，偏得越多。线是她的“臂”：她现在对每种感受' +
-        '比刚出生时（圆圈）多还是少。大星星是人。',
-      'map.counts': '{rows} 行里最亮的 {stars} 颗 · 臂长取自最近 {probed} 次学习',
-      'map.born': '{rows} 行里最亮的 {stars} 颗 · 学满 20 次之前臂长和出生时一样（现在 {probed} 次）',
-      'map.star': '{key}：偏向{end}（{bright}）',
-      'map.person': '{who}：学过 {lessons} 次，她对这个人的样子里有 {weight}% 是专属于这个人的',
-      'map.pick': '点一下或指着一颗星，看看它是什么。',
+      'tab.title': '她的直觉',
+      'tab.description': '她的星图、她最近的感觉、她长大了多少，以及她认识的人',
+      'header.open': '她的直觉',
+      loading: '正在读取她的直觉……',
+      unreachable: '无法读取她的直觉（{error}）：插件已关闭、尚未启动，或者设置成了不使用直觉（gut: false）。',
+      updated: '截至 {time}',
+      lessons: '{lessons} 节课',
+      'map.title': '星图：她的心和她认识的人',
+      'map.caption': '每个点都是她注意到的一件事，朝着它把她引向的那种感觉摆放；点越亮，偏向得越多。这些线是她的臂：她现在每种感觉比出生时（那个环）多了或少了多少。大星星是人。',
+      'map.counts': '{rows} 个中最亮的 {stars} 个 · 臂来自她最近的 {probed} 节课',
+      'map.born': '{rows} 个中最亮的 {stars} 个 · 臂仍是出生时的样子，直到上满 20 节课（目前 {probed} 节）',
+      'map.star': '{key}：偏向 {end}（{bright}）',
+      'map.person': '{who}：{lessons} 节课，她对这个人的样子里有 {weight}% 是专属于这个人的',
+      'map.pick': '点一下或用手指指向一颗星星，看看它是什么。',
       you: '你',
-      'bars.title': '最近与平常',
-      'bars.hint': '实心条是最近，竖线是平常；两头的条从中间往一头偏。',
+      'bars.title': '最近对比平常',
+      'bars.hint': '实心条是最近，刻度线是平常；两端都能延伸的条会从中间偏向其中一端。',
+      san: 'SAN',
       'self-esteem': '自尊',
       usual: '平常 {value}',
       'grown.title': '长大',
-      'grown.age': '年龄：教过她的心 {age} 次',
-      'grown.grown': '长大了 {grown}%（{full} 次时完全长大，是 tau {tau} 的五倍）',
-      'grown.learning': '现在学得是小时候的 {learning}% 那么快',
-      'grown.side': '还会在「{side}」这一面待 {days} 天',
+      'grown.age': '年龄：{age} 节课教给了她的心',
+      'grown.grown': '长大了 {grown}%（上满 {full} 节课就完全长大，也就是五倍的 tau {tau}）',
+      'grown.learning': '学习速度是她小时候的 {learning}%',
+      'grown.side': '还会在她的{side}一面待 {days} 天',
       'people.title': '她认识的人',
-      'people.none': '还没有。',
-      'people.row': '学过 {lessons} 次 · {weight}% 专属于这个人',
-      'settings.summary': '她的心：长大的速度、敏感度、每种感受的微调',
-      'settings.intro': '她的直觉的设置。保存后立刻用在正在运行的插件上，并记在她的直觉文件（gut.db）里；从那以后，这里的设置优先于' +
-        '插件配置里的 tau 和 sensitivity——那两个只给还没有自己设置的直觉起个头。',
+      'people.none': '还没有人。',
+      'people.row': '{lessons} 节课 · {weight}% 专属于这个人',
+      'settings.summary': '她的直觉：她的心长得多快、事情对她的冲击有多大，以及可以逐个调整的每种感觉',
+      'settings.title': '她的直觉',
+      'settings.intro': '她的直觉设置。保存后会立刻生效到正在运行的插件，并存进她的直觉文件（gut.db）；此后这些设置会优先于插件配置里的 tau 和敏感度，tau 和敏感度只用来初始化一个还没有自己设置的' +
+        '直觉。',
       'settings.grown': '长大',
-      'settings.tau': 'tau（次）',
-      'settings.tauHint': '她的心长大得多快：小时候每次学习都让她的心变很多，长大以后（tau 的五倍）就只变一点。大于 0 的数。',
-      'settings.age': '年龄：{age} 次，长大了 {grown}%，现在学得是小时候的 {learning}% 那么快',
+      'settings.tau': 'tau（节课）',
+      'settings.tauHint': '她的心长得多快：小时候，一节课就能让她的心变化很大；长大后（到五倍 tau 时），变化就很小。填大于 0 的数。',
+      'settings.age': '年龄：{age} 节课，长大了 {grown}%，学习速度是她小时候的 {learning}%',
       'settings.young': '回到小时候',
-      'settings.youngConfirm': '让她回到小时候？年龄回到 0，她的心又会学得很快。她什么都不会忘。',
+      'settings.youngConfirm': '让她回到小时候？她的年龄会归零，她的心又会学得很快。她不会忘记任何事。',
       'settings.sensitivity': '敏感度',
-      'settings.sensitivityHint': '每件事对她的冲击有多大：-1 钝感（轻轻的）到 1 敏感（很重）；0 是她本来的样子。',
-      'settings.tunes': '逐项微调每种感受',
-      'settings.tunesHint': '天性（-3 到 3）推一推她本来的样子：学习不会抹掉它，0 就是去掉。现在（-1 到 1）是她最近比平常多或少感受到' +
-        '多少：会随着她的生活慢慢淡去。',
+      'settings.sensitivityHint': '每个瞬间对她的冲击有多大：-1 钝感（轻轻带过）到 1 敏感（冲击很重）；0 就是她本来的样子。',
+      'settings.dull': '钝感',
+      'settings.keen': '敏感',
+      'settings.tunes': '每种感觉，逐个调',
+      'settings.tunesHint': '天性（-3 到 3）会微微推一推她本来的样子：学习永远不会把它拿走，填 0 就是去掉它。现在（-1 到 1）是她最近比平常多或少感受到这种感觉的程度：它会随着她的生活慢慢变淡。',
       'settings.nature': '天性',
       'settings.now': '现在',
       'settings.save': '保存',
-      'settings.discard': '放弃改动',
+      'settings.discard': '放弃',
       'settings.unsaved': '{count} 项未保存',
       'settings.none': '没有改动',
-      'settings.saved': '已保存：她的心已经用上了。',
-      'settings.failed': '没有保存：{error}',
-      'settings.badTau': 'tau 是大于 0 的数'
+      'settings.saved': '已保存：她的直觉已经记住了。',
+      'settings.failed': '未保存：{error}',
+      'settings.badTau': 'tau 要大于 0'
     }
 
     /** `{name}` in a sentence filled in. */

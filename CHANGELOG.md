@@ -27,9 +27,9 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
 - **A panel in DeepSeek Harness** (`plugin/client.js`, the plugin's client half). On the plugin's page under Plugins:
   her gut's settings, changed in the running plugin and kept in her gut file (`tau`, sensitivity, her age with a
   "young again", and nature and now for each of her 24 ends, by bar), saved together. In the right sidebar, a tab
-  (她的心 · Her gut) with her star map, her bars lately against usual, SAN and self-esteem, how grown up she is and the
-  people she knows, looking again every few seconds while it is in view; a button in the conversation's header opens
-  it. Light and dark themes, phone widths too. Both read and change her gut through three routes on DSH's own API,
+  (Her gut, 她的直觉) with the star map of her heart and the people she knows, her bars lately against usual, SAN
+  and self-esteem, and how grown up she is, looking again every few seconds while it is in view; a button in the
+  conversation's header opens it. Light and dark themes, phone widths too. Both read and change her gut through three routes on DSH's own API,
   behind its sign-in and for its owner only (`plugin/panel.js`).
 - **Her star map** (`lib/starmap.js`): every row of her heart is a star placed toward the ends it pulls her to (a
   softmax of its weights along her arms), as bright as it leans, in the colour of the bar of its strongest end; her
