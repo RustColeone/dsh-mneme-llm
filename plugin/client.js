@@ -425,11 +425,14 @@ window.__ModuleLoader__.load({
         g.fillText(label, left ? px - size - 4 : px + size + 4, py)
       }
       g.lineWidth = 1
-      if (picked) {
+      const shown = picked && (picked.person // (where it is drawn now: the map may have been resized since)
+        ? people.find(item => item.person.subject === picked.person.subject)
+        : points.find(item => item.key === picked.key))
+      if (shown) {
         g.strokeStyle = ink
         g.lineWidth = 1.5
         g.beginPath()
-        g.arc(picked.px, picked.py, (picked.size ?? 3) + 5, 0, 2 * Math.PI)
+        g.arc(shown.px, shown.py, (shown.size ?? 3) + 5, 0, 2 * Math.PI)
         g.stroke()
         g.lineWidth = 1
       }
@@ -444,6 +447,24 @@ window.__ModuleLoader__.load({
       const y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp
       const near = EYE / (EYE - z2)
       return [x1 * near, -y2 * near, z2, near]
+    }
+
+    /** Where each end's name goes in 3D, the front ones first: a line up or down off a nearer name it would cover, or
+     * left out while it cannot be (it is further back; as the map turns, it comes back). k → {x, y, align}. */
+    function placeNames (g, tips, names, half, font) {
+      const taken = [], places = new Map(), tall = font + 2
+      for (const tip of [...tips].sort((one, other) => other.z - one.z)) {
+        const [x, at] = tip.label, wide = g.measureText(names[tip.k]).width
+        const align = x < half - 2 ? 'right' : x > half + 2 ? 'left' : 'center'
+        const left = align === 'right' ? x - wide : align === 'center' ? x - wide / 2 : x
+        const free = y => !taken.some(([x0, y0, x1, y1]) => left < x1 && left + wide > x0 && y - tall / 2 < y1 &&
+          y + tall / 2 > y0)
+        const y = [at, at - tall, at + tall].find(free)
+        if (y === undefined) continue
+        taken.push([left - 2, y - tall / 2, left + wide + 2, y + tall / 2])
+        places.set(tip.k, { x, y, align })
+      }
+      return places
     }
 
     /** Her star map in 3D: her 24 ends on a sphere, each bar's two ends side by side; the nearer, the brighter.
@@ -467,7 +488,10 @@ window.__ModuleLoader__.load({
       g.fill()
       g.font = `${font}px system-ui, -apple-system, sans-serif`
       const longest = Math.max(1, ...map.reach.map(reach => Math.min(ARM, reach)))
-      const R = Math.max(10, (half - 10 - 5 * font) / (longest * EYE / (EYE - longest) + 0.2)) // (as big as fits, names too)
+      // (as big as fits, names too, however it is turned: a point this far out is drawn at most far / √(1 − (far/EYE)²)
+      // from the middle, when it leans toward the eye by far/EYE)
+      const out = Math.min(LABELS, longest + 0.15), seen = out / Math.sqrt(1 - (out / EYE) ** 2)
+      const R = Math.max(10, (half - 6 - 5 * font) / seen)
       const colour = map.ends.map(end => endColour(view.bars, end, dark))
       const depth = z => Math.max(0, Math.min(1, (z + ARM) / (2 * ARM))) // 0 at the back, 1 at the front
       const screen = at => {
@@ -519,17 +543,20 @@ window.__ModuleLoader__.load({
       g.globalAlpha = 1
       // the tips of her arms and the names of her ends, the front ones over the back
       g.textBaseline = 'middle'
+      const names = map.ends.map(end => endName(t, view, end))
+      const places = placeNames(g, tips, names, half, font)
       for (const tip of [...tips].sort((one, other) => one.z - other.z)) {
-        const front = depth(tip.z), [lx, ly] = tip.label
+        const front = depth(tip.z), place = places.get(tip.k)
         g.fillStyle = colour[tip.k]
         g.globalAlpha = 0.4 + 0.6 * front
         g.beginPath()
         g.arc(tip.x, tip.y, 2.2, 0, 2 * Math.PI)
         g.fill()
+        if (!place) continue
         g.fillStyle = ink
         g.globalAlpha = 0.3 + 0.6 * front
-        g.textAlign = lx < half - 2 ? 'right' : lx > half + 2 ? 'left' : 'center'
-        g.fillText(endName(t, view, map.ends[tip.k]), lx, ly)
+        g.textAlign = place.align
+        g.fillText(names[tip.k], place.x, place.y)
       }
       g.globalAlpha = 1
       // the people she knows, from the back to the front
@@ -1175,7 +1202,7 @@ window.__ModuleLoader__.load({
   border: .5px solid var(--dsw-alias-border-l4, rgba(128,128,128,.5)) }
 .mnl-switch button { height: 26px; padding: 0 12px; border: 0; font: inherit; font-size: 12px; color: inherit;
   background: transparent; cursor: pointer }
-.mnl-turning { cursor: grab; touch-action: none }
+.mnl-turning { cursor: grab; touch-action: pan-y } /* (a finger up or down still scrolls the page) */
 .mnl-turning:active { cursor: grabbing }
 .mnl-pick { font-size: 12px; min-height: 18px; color: var(--dsw-alias-label-secondary, #666); overflow-wrap: anywhere }
 .mnl-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
