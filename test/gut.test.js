@@ -93,6 +93,29 @@ test('both ends of a bar at once, and lessons from before teach only the seven t
   assert.ok(net.vector(FORM, 85).happy < defiant)
 })
 
+test('her nature is where she stands, and she lives on from it: counted once, and a locked heart keeps it', () => {
+  const dial = () => G.ENDS.map(end => end === 'suspicious' ? 6.0 : 0.0)
+  const net = new G.Net()
+  net.nudge = dial()
+  assert.ok(net.vector(FORM, 85).suspicious > 0.9) // 6: fully, from a blank heart
+  teachMany(net, 'a', { suspicious: 0.9 }, 60) // living as she is set: counted once, not twice
+  net.sleep()
+  assert.ok(Math.abs(net.vector(FORM, 85).suspicious - 0.9) < 0.03)
+  teachMany(net, 'b', { trusting: 0.9, suspicious: 0.05 }, 300) // someone close who keeps showing she can trust them
+  net.sleep()
+  const withThem = net.vector(FORM, 85, 'b')
+  assert.ok(withThem.trusting > withThem.suspicious)
+  const held = new G.Net()
+  held.nudge = dial()
+  held.locked = true
+  teachMany(held, 'b', { trusting: 0.9, suspicious: 0.05 }, 300)
+  held.sleep()
+  assert.ok(held.vector(FORM, 85).suspicious > 0.9) // a locked heart keeps her nature as set
+  held.hands = { b: { nudge: { suspicious: -6.0 } } } // a person's own nudge: on top of all of it, for them
+  assert.ok(held.vector(FORM, 85, 'b').suspicious < 0.2)
+  assert.ok(held.vector(FORM, 85).suspicious > 0.9)
+})
+
 test('a new bar goes last; born suspicious, she can still trust one person', () => {
   assert.deepEqual([G.ENDS.length, G.ENDS[23], G.ENDS.slice(24)], [26, 'aching', ['suspicious', 'trusting']])
   const net = new G.Net()
@@ -261,7 +284,7 @@ test('her settings stay, a tune fades as she lives, and an age can be set young 
   }
   gut.tune('irritable', { nature: -2 })
   assert.throws(() => gut.tune('angry', { now: 0.3 }))
-  assert.throws(() => gut.tune('irritable', { nature: 4 }))
+  assert.throws(() => gut.tune('irritable', { nature: 7 }))
   assert.ok(gut.net.vector(FORM, 85).irritable < 0.01)
   gut.tune('sad', { now: 0.5 })
   assert.ok(Math.abs(gut.tone.lean({ sad: 0.1 }).sad - 0.6) < 1e-12)
@@ -307,7 +330,7 @@ test('locked by hand: her heart, each person, a side shown in its share of turns
   assert.equal(gut.net.weight('discord:1'), 0)
   gut.tunePerson('discord:1', { weight: 'learned' })
   assert.equal(gut.net.weight('discord:1'), learned)
-  for (const bad of [{ end: 'sweet' }, { end: 'angry', nature: 1 }, { end: 'sweet', nature: 4 }, { weight: 1.5 },
+  for (const bad of [{ end: 'sweet' }, { end: 'angry', nature: 1 }, { end: 'sweet', nature: 7 }, { weight: 1.5 },
     { weight: 'some' }, { locked: 'yes' }]) assert.throws(() => gut.tunePerson('discord:1', bad))
   gut.tunePerson('discord:1', { locked: true })
   const theirs = gut.net.vector(FORM, 85, 'discord:1')

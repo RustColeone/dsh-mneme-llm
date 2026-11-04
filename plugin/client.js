@@ -94,8 +94,10 @@ window.__ModuleLoader__.load({
       'settings.dull': 'thick-skinned',
       'settings.keen': 'sensitive',
       'settings.tunes': 'Each feeling, by hand',
-      'settings.tunesHint': 'Nature (-3 to 3) nudges who she is: learning never takes it away, and 0 removes it. Now ' +
-        '(-1 to 1) is how much more or less of it she feels lately than usual: it fades as she lives.',
+      'settings.tunesHint': 'Nature (-6 to 6) is where she stands on a feeling, as if she had been born so: 3 is ' +
+        'about even, 6 is fully. What she lives moves her on from there (slowly once she is grown; a locked heart keeps ' +
+        'it), and 0 removes it. Now (-1 to 1) is how much more or less of it she feels lately than usual: it fades as ' +
+        'she lives.',
       'settings.nature': 'nature',
       'settings.now': 'now',
       'settings.save': 'Save',
@@ -117,8 +119,8 @@ window.__ModuleLoader__.load({
       'people.weight': 'theirs',
       'people.lock': 'Lock how she is with them: what they say teaches nothing, and they do not fade',
       'people.tunes': 'Each feeling, with them alone',
-      'people.tunesHint': 'A nudge to each feeling with this person only, on top of her nature (-3 to 3; 0 ' +
-        'removes it).',
+      'people.tunesHint': 'A nudge to each feeling with this person only, on top of all she is and has learned ' +
+        'with them; it stays (-6 to 6; 0 removes it).',
       'people.forget': 'Forget them',
       'people.forgetConfirm': 'Forget {who}? How she is with them goes, and so do the sides only they wanted. What ' +
         'they did to her heart stays.',
@@ -190,7 +192,7 @@ window.__ModuleLoader__.load({
       'settings.dull': '钝感',
       'settings.keen': '敏感',
       'settings.tunes': '每种感觉，逐个调',
-      'settings.tunesHint': '天性（-3 到 3）会微微推一推她本来的样子：学习永远不会把它拿走，填 0 就是去掉它。现在（-1 到 1）是她最近比平常多或少感受到这种感觉的程度：它会随着她的生活慢慢变淡。',
+      'settings.tunesHint': '天性（-6 到 6）是她在这种感受上站的位置，就像她生来如此：3 大约持平，6 是完全如此。她经历的事会让她从那里慢慢移开（长大后更慢；锁住她的心，它就留在那里），填 0 就是去掉它。现在（-1 到 1）是她最近比平常多或少感受到这种感觉的程度：它会随着她的生活慢慢变淡。',
       'settings.nature': '天性',
       'settings.now': '现在',
       'settings.save': '保存',
@@ -211,7 +213,7 @@ window.__ModuleLoader__.load({
       'people.weight': '专属于这个人',
       'people.lock': '锁住她和这个人相处的样子：这个人说的话什么也不教，也不会淡去',
       'people.tunes': '每一种感受，只对这个人',
-      'people.tunesHint': '只针对这个人，给每种感受加一点偏移，叠加在她的天性之上（-3 到 3；0 表示移除）。',
+      'people.tunesHint': '只针对这个人，给每种感受加一点偏移，叠加在她本来的样子和她与这个人相处中学到的一切之上，并且一直保留（-6 到 6；0 表示移除）。',
       'people.forget': '忘记这个人',
       'people.forgetConfirm': '忘记{who}？她和这个人相处的样子会消失，只有这个人想要的属性也会消失；这个人在她心里留下的影响还在。',
       'people.forgotten': '保存后就会忘记',
@@ -852,7 +854,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'mnl-edit-title' },
               h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, chosen, dark) } }),
               endName(t, view, chosen), bar ? h('span', { className: 'mnl-dim' }, barName(t, bar)) : null),
-            h(Slider, { label: t('settings.nature'), value: tune.nature, low: -3, high: 3, step: 0.1,
+            h(Slider, { label: t('settings.nature'), value: tune.nature, low: -6, high: 6, step: 0.1,
               changed: changed.nature !== undefined, onChange: value => retune('nature', value) }),
             h(Slider, { label: t('settings.now'), value: tune.now, low: -1, high: 1, step: 0.05,
               changed: changed.now !== undefined, onChange: value => retune('now', value) }))))
@@ -921,7 +923,7 @@ window.__ModuleLoader__.load({
               h('div', { className: 'mnl-row' },
                 h('span', { className: 'mnl-swatch', style: { background: endColour(view.bars, end, dark) } }),
                 h(EndSelect, { view, value: end, onChange: setEnd, t, label: t('people.tunes') })),
-              h(Slider, { label: t('settings.nature'), value: nudge(end), low: -3, high: 3, step: 0.1,
+              h(Slider, { label: t('settings.nature'), value: nudge(end), low: -6, high: 6, step: 0.1,
                 changed: staged.tune?.[end] !== undefined,
                 onChange: item => set('tune', { ...(staged.tune || {}), [end]: item }) }),
               nudged.length ? h('div', { className: 'mnl-tags' }, nudged.map(name => h('button', { key: name,

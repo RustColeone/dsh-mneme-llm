@@ -187,11 +187,11 @@ default, they appear for everyone.
 ```js
 const gut = new Gut('her.gut.db', { starter, tau: 150, zone: m.memory.zone })   // tau and zone: for a new gut
 gut.configure({ tau: 300, sensitivity: 0.5 })    // grow up slower; 敏感 (1) to 钝感 (-1): how hard things hit her
-gut.tune('irritable', { nature: -1.5 })          // a nudge to who she is, never learned away (0 removes it)
+gut.tune('irritable', { nature: -1.5 })          // where she stands on it (-6 to 6); she lives on from there (0 removes it)
 gut.tune('sad', { now: 0.4 })                    // how she is lately, fading back as she lives
 gut.setAge(0)                                    // young again, forgetting nothing
 gut.configure({ locked: true })                  // her heart learns nothing and does not grow up, until unlocked
-gut.tunePerson('discord:42', { end: 'sweet', nature: 2 })   // with them alone, on top of her nature
+gut.tunePerson('discord:42', { end: 'sweet', nature: 2 })   // with them alone, on top of all of it, kept
 gut.tunePerson('discord:42', { weight: 0.3, locked: true }) // how much theirs counts; what they say teaches nothing
 gut.lockSide('病娇', { often: 0.5, what: '你离不开对方……' })   // in this side for good, in half her turns
 gut.report().people, gut.report().SAN            // how much each person counts, her slow levels
@@ -315,8 +315,9 @@ sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --
 - **Plugins → dsh-mneme-llm** changes her gut while it runs: `tau` (how many lessons her heart takes to grow up; she
   is grown up at five times it), sensitivity (−1 钝感, things hit her lightly, to 1 敏感, they hit her hard), her age
   with a "young again" button (she learns fast again and forgets nothing), and each of her 26 feelings by hand,
-  grouped by her 14 bars: *nature* (−3 to 3) nudges who she is and is never learned away, 0 removes it; *now* (−1 to
-  1) is how much more or less of it she feels lately than usual, and it fades as she lives. Changes are saved
+  grouped by her 14 bars: *nature* (−6 to 6) is where she stands on it, as if she had been born so, and she lives on
+  from there (a locked heart keeps it), 0 removes it; *now* (−1 to 1) is how much more or less of it she feels lately
+  than usual, and it fades as she lives. Changes are saved
   together, reach the running plugin at once and are kept in her gut file (`gut.db`). From then on they win over
   `tau` and `sensitivity` in the plugin's settings, which only start a gut that has no settings of its own. The same
   page locks her heart, sets each person she knows by hand (closeness and its lock, how much what is different with

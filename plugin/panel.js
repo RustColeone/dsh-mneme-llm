@@ -91,7 +91,9 @@ export function change (gut, asked, memory = null) {
   for (const tune of tunes) {
     if (!isTable(tune) || !ENDS.includes(tune.end)) throw new py.ValueError(`not an end of hers: ${tune?.end}`)
     if (tune.now !== undefined && tune.now !== null) within(tune.now, -1, 1, `now for ${tune.end}`)
-    if (tune.nature !== undefined && tune.nature !== null) within(tune.nature, -3, 3, `nature for ${tune.end}`)
+    if (tune.nature !== undefined && tune.nature !== null) {
+      within(tune.nature, -G.NATURE, G.NATURE, `nature for ${tune.end}`)
+    }
   }
   const locked = asked.locked ?? null
   if (locked !== null && typeof locked !== 'boolean') throw new py.ValueError('locked is true or false')
@@ -103,7 +105,7 @@ export function change (gut, asked, memory = null) {
     }
     for (const tune of listOf(person.tune)) {
       if (!isTable(tune) || !ENDS.includes(tune.end)) throw new py.ValueError(`not an end of hers: ${tune?.end}`)
-      within(tune.nature, -3, 3, `nature for ${tune.end} with ${person.subject}`)
+      within(tune.nature, -G.NATURE, G.NATURE, `nature for ${tune.end} with ${person.subject}`)
     }
     if (given(person.weight) && person.weight !== 'learned') within(person.weight, 0, 1, 'weight')
     for (const key of ['locked', 'hold', 'forget']) {

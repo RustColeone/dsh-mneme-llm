@@ -7,6 +7,9 @@
   person. It goes last, so a 0.3 gut file is widened as it is read (its 24 ends as they were, the new two as nothing
   yet) and its lessons teach only the 24 they knew. Her note scores all 26; trusting alone puts nothing in the line. The
   star map places the 14 bars anew on its sphere, and the bar has a colour of its own.
+- **Her nature dial is where she stands, and she lives on from it** (now -6 to 6, `NATURE`), as in mneme-llm: her heart
+  and each person's table learn against it, so a dial and lessons saying the same thing no longer count it twice; a
+  locked heart keeps it; a person's own nudge stays on top, for them alone. The panel's dials reach -6 to 6.
 - **Her star map in 3D**, a switch on her tab (2D or 3D, kept by the browser): her 13 bars spread over a sphere, the
   two ends of each bar side by side (24 degrees apart, every other bar's ends more than 40 away), so a row pulled to
   both ends of a bar goes out between them. Drag to turn it (on a touch screen, sideways: a finger up or down still

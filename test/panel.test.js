@@ -59,7 +59,7 @@ test('a change lands whole or not at all, and her gut keeps it', () => {
   const gut = new G.Gut(where)
   gut.wake()
   for (const bad of [{ tau: 0 }, { tau: '9' }, { sensitivity: 1.5 }, { age: -1 }, { tune: { end: 'angry', now: 0 } },
-    { tune: [{ end: 'sad', now: 0.2 }, { end: 'sad', nature: 4 }] }, { tau: 200, tune: { end: 'happy', now: 2 } }, [],
+    { tune: [{ end: 'sad', now: 0.2 }, { end: 'sad', nature: 7 }] }, { tau: 200, tune: { end: 'happy', now: 2 } }, [],
     null]) {
     assert.throws(() => change(gut, bad), py.ValueError)
   }
