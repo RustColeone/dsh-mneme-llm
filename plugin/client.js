@@ -57,9 +57,6 @@ window.__ModuleLoader__.load({
         'she was born (the ring). The big stars are people.',
       'map.counts': '{stars} brightest of {rows} · arms from her last {probed} lessons',
       'map.born': '{stars} brightest of {rows} · arms as born until 20 lessons ({probed} so far)',
-      'map.star': '{key}: leans to {end} ({bright})',
-      'map.person': '{who}: {lessons} lessons, {weight}% of how she is with them is theirs',
-      'map.pick': 'Tap or point at a star to see what it is.',
       'map.view': 'View',
       'map.turn': 'Drag to turn it; a few seconds later it turns slowly by itself. The two ends of each bar sit side ' +
         'by side.',
@@ -161,9 +158,6 @@ window.__ModuleLoader__.load({
       'map.caption': '每个点都是她注意到的一件事，朝着它把她引向的那种感觉摆放；点越亮，偏向得越多。这些线是她的臂：她现在每种感觉比出生时（那个环）多了或少了多少。大星星是人。',
       'map.counts': '{rows} 个中最亮的 {stars} 个 · 臂来自她最近的 {probed} 节课',
       'map.born': '{rows} 个中最亮的 {stars} 个 · 臂仍是出生时的样子，直到上满 20 节课（目前 {probed} 节）',
-      'map.star': '{key}：偏向 {end}（{bright}）',
-      'map.person': '{who}：{lessons} 节课，她对这个人的样子里有 {weight}% 是专属于这个人的',
-      'map.pick': '点一下或用手指指向一颗星星，看看它是什么。',
       'map.view': '视图',
       'map.turn': '拖动可以旋转它；几秒后它会自己慢慢转。每一条的两端并排挨在一起。',
       you: '你',
@@ -310,8 +304,8 @@ window.__ModuleLoader__.load({
       return Math.min(...arms.map((arm, k) => (half - 4 - widths[k] - 6) / Math.min(LABELS, Math.min(ARM, arm) + gap)))
     }
 
-    /** Her star map on a canvas; what was drawn where, for picking a star. */
-    function draw (canvas, map, view, dark, picked, t) {
+    /** Her star map on a canvas. */
+    function draw (canvas, map, view, dark, t) {
       const width = Math.max(120, Math.round(canvas.getBoundingClientRect().width))
       const ratio = window.devicePixelRatio || 1
       if (canvas.width !== width * ratio) {
@@ -368,13 +362,12 @@ window.__ModuleLoader__.load({
       // the stars, dimmest first; brightness against the brighter stars of this map
       const brights = map.stars.map(star => star[2]).sort((one, other) => one - other)
       const top = Math.max(0.05, brights[Math.floor(brights.length * 0.97)] ?? 1)
-      const points = []
       const place = (x, y) => {
         const far = Math.hypot(x, y), cut = far > ARM ? ARM / far : 1 // (inside the map, whatever her arms)
         return [half + x * cut * R, half + y * cut * R]
       }
       for (let i = map.stars.length - 1; i >= 0; i--) {
-        const [x, y, bright, end, key] = map.stars[i], [px, py] = place(x, y)
+        const [x, y, bright, end] = map.stars[i], [px, py] = place(x, y)
         const lean = Math.min(1, bright / top), size = (0.7 + 2.3 * lean) * scale
         g.fillStyle = colour[end]
         if (dark && lean > 0.5) { // (a glow on the dark sky, for the stars that lean most)
@@ -389,7 +382,6 @@ window.__ModuleLoader__.load({
         g.beginPath()
         g.arc(px, py, size, 0, 2 * Math.PI)
         g.fill()
-        points.push({ px, py, star: map.stars[i], key })
       }
       g.globalAlpha = 1
       // the people she knows: one big star each, as big as how much of how she is with them is theirs
@@ -425,18 +417,6 @@ window.__ModuleLoader__.load({
         g.fillText(label, left ? px - size - 4 : px + size + 4, py)
       }
       g.lineWidth = 1
-      const shown = picked && (picked.person // (where it is drawn now: the map may have been resized since)
-        ? people.find(item => item.person.subject === picked.person.subject)
-        : points.find(item => item.key === picked.key))
-      if (shown) {
-        g.strokeStyle = ink
-        g.lineWidth = 1.5
-        g.beginPath()
-        g.arc(shown.px, shown.py, (shown.size ?? 3) + 5, 0, 2 * Math.PI)
-        g.stroke()
-        g.lineWidth = 1
-      }
-      return { points, people }
     }
 
     /** A point of her 3D map seen from where the map is turned: across, down the screen, toward the eye, and how
@@ -467,9 +447,8 @@ window.__ModuleLoader__.load({
       return places
     }
 
-    /** Her star map in 3D: her 24 ends on a sphere, each bar's two ends side by side; the nearer, the brighter.
-     * What was drawn where, for picking a star. */
-    function draw3d (canvas, map, view, dark, picked, t, turn) {
+    /** Her star map in 3D: her 24 ends on a sphere, each bar's two ends side by side; the nearer, the brighter. */
+    function draw3d (canvas, map, view, dark, t, turn) {
       const width = Math.max(120, Math.round(canvas.getBoundingClientRect().width))
       const ratio = window.devicePixelRatio || 1
       if (canvas.width !== width * ratio) {
@@ -522,7 +501,6 @@ window.__ModuleLoader__.load({
       const brights = map.stars.map(star => star[2]).sort((one, other) => one - other)
       const top = Math.max(0.05, brights[Math.floor(brights.length * 0.97)] ?? 1)
       const placed = map.stars.map(star => [star, screen(star.slice(5, 8))]).sort((one, other) => one[1][2] - other[1][2])
-      const points = []
       for (const [star, [px, py, z, near]] of placed) {
         const lean = Math.min(1, star[2] / top), size = (0.7 + 2.3 * lean) * scale * near, front = depth(z)
         g.fillStyle = colour[star[3]]
@@ -538,7 +516,6 @@ window.__ModuleLoader__.load({
         g.beginPath()
         g.arc(px, py, size, 0, 2 * Math.PI)
         g.fill()
-        points.push({ px, py, star, key: star[4] })
       }
       g.globalAlpha = 1
       // the tips of her arms and the names of her ends, the front ones over the back
@@ -591,34 +568,6 @@ window.__ModuleLoader__.load({
       }
       g.globalAlpha = 1
       g.lineWidth = 1
-      const shown = picked && (picked.person
-        ? people.find(item => item.person.subject === picked.person.subject)
-        : points.find(item => item.key === picked.key))
-      if (shown) {
-        g.strokeStyle = ink
-        g.lineWidth = 1.5
-        g.beginPath()
-        g.arc(shown.px, shown.py, (shown.size ?? 3) + 5, 0, 2 * Math.PI)
-        g.stroke()
-        g.lineWidth = 1
-      }
-      return { points: points.reverse(), people: people.reverse() } // (the front first, for picking)
-    }
-
-    /** The star or person nearest a point on the map, within a finger's width. */
-    function nearest (drawn, x, y) {
-      let best = null, far = 14
-      for (const item of drawn.people) {
-        const d = Math.hypot(item.px - x, item.py - y) - item.size
-        if (d < far) [best, far] = [item, d]
-      }
-      if (best) return best
-      far = 10
-      for (const item of drawn.points) {
-        const d = Math.hypot(item.px - x, item.py - y)
-        if (d < far) [best, far] = [item, d]
-      }
-      return best
     }
 
     /** Which view of her map the browser keeps: 3D or not. */
@@ -631,19 +580,15 @@ window.__ModuleLoader__.load({
     }
 
     function StarMap ({ map, view, t }) {
-      const canvas = useRef(null), drawn = useRef(null), turn = useRef({ yaw: 0.6, pitch: -0.32 })
+      const canvas = useRef(null), turn = useRef({ yaw: 0.6, pitch: -0.32 })
       const drag = useRef(null), rested = useRef(0), paintRef = useRef(null)
-      const [picked, setPicked] = useState(null)
       const [three, setThree] = useState(remembered)
       const round = three && Array.isArray(map?.directions) // (a map from before 3D has no directions)
-      useEffect(() => setPicked(null), [map]) // (a new map: what was picked may be elsewhere now)
       useEffect(() => {
         const element = canvas.current
         if (!element || !map) return
-        const paint = () => {
-          drawn.current = round ? draw3d(element, map, view, isDark(element), picked, t, turn.current)
-            : draw(element, map, view, isDark(element), picked, t)
-        }
+        const paint = () => round ? draw3d(element, map, view, isDark(element), t, turn.current)
+          : draw(element, map, view, isDark(element), t)
         paintRef.current = paint
         paint()
         const resized = new ResizeObserver(paint)
@@ -675,53 +620,33 @@ window.__ModuleLoader__.load({
           watched?.disconnect()
           if (frame !== null) window.cancelAnimationFrame(frame)
         }
-      }, [map, view, picked, t, round])
+      }, [map, view, t, round])
       const choose = value => {
         setThree(value)
         try {
           window.localStorage?.setItem(SAVED, value ? '3d' : '2d')
         } catch {}
       }
-      const point = event => {
-        if (!drawn.current) return
-        const box = canvas.current.getBoundingClientRect()
-        const found = nearest(drawn.current, event.clientX - box.left, event.clientY - box.top)
-        if ((found?.key ?? found?.person?.subject) !== (picked?.key ?? picked?.person?.subject)) setPicked(found)
-      }
       const down = event => {
-        if (round) {
-          drag.current = { x: event.clientX, y: event.clientY, moved: 0 }
-          try {
-            event.currentTarget.setPointerCapture?.(event.pointerId)
-          } catch {} // (a pointer the page no longer holds: the drag goes on without it)
-        } else point(event)
+        if (!round) return
+        drag.current = { x: event.clientX, y: event.clientY }
+        try {
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+        } catch {} // (a pointer the page no longer holds: the drag goes on without it)
       }
       const move = event => {
         const held = drag.current
-        if (!round || !held) return point(event)
+        if (!round || !held) return
         const dx = event.clientX - held.x, dy = event.clientY - held.y
         held.x = event.clientX
         held.y = event.clientY
-        held.moved += Math.abs(dx) + Math.abs(dy)
         turn.current.yaw += dx * 0.01
         turn.current.pitch = Math.max(-1.4, Math.min(1.4, turn.current.pitch + dy * 0.01))
         paintRef.current?.()
       }
-      const up = event => {
-        const held = drag.current
+      const up = () => {
         drag.current = null
         rested.current = Date.now()
-        if (round && held && held.moved < 5) point(event) // (a tap, not a turn)
-      }
-      let caption = t('map.pick')
-      if (picked?.person) {
-        const person = picked.person
-        caption = t('map.person', { who: person.subject === view.you ? view.youName : person.subject,
-          lessons: person.lessons, weight: percent(person.weight) })
-      } else if (picked) {
-        const [, , bright, end] = picked.star
-        caption = t('map.star', { key: picked.key, end: endName(t, view, map.ends[end]),
-          bright: fixed(bright) })
       }
       return h('div', { className: 'mnl-map' },
         h('div', { className: 'mnl-switch', role: 'group', 'aria-label': t('map.view') },
@@ -730,7 +655,6 @@ window.__ModuleLoader__.load({
         h('canvas', { ref: canvas, className: round ? 'mnl-canvas mnl-turning' : 'mnl-canvas', role: 'img',
           'aria-label': t('map.caption'), onPointerMove: move, onPointerDown: down, onPointerUp: up,
           onPointerCancel: up }),
-        h('div', { className: 'mnl-pick' }, caption),
         round ? h('div', { className: 'mnl-dim' }, t('map.turn')) : null,
         h('div', { className: 'mnl-dim' }, t(map.probed >= 20 ? 'map.counts' : 'map.born',
           { stars: map.stars.length, rows: map.rows, probed: map.probed })),
@@ -1204,7 +1128,6 @@ window.__ModuleLoader__.load({
   background: transparent; cursor: pointer }
 .mnl-turning { cursor: grab; touch-action: pan-y } /* (a finger up or down still scrolls the page) */
 .mnl-turning:active { cursor: grabbing }
-.mnl-pick { font-size: 12px; min-height: 18px; color: var(--dsw-alias-label-secondary, #666); overflow-wrap: anywhere }
 .mnl-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
 .mnl-level { border: .5px solid var(--dsw-alias-border-l3, rgba(128,128,128,.3)); border-radius: 12px;
   padding: 8px 12px; background: var(--dsw-alias-bg-layer-1, transparent) }
@@ -1343,7 +1266,7 @@ window.__ModuleLoader__.load({
       })
     }
 
-    module.exports = { inject, apply, format, endColour, baseRadius, nearest, endName, barName, COLOURS, EN, ZH, ROUTES,
+    module.exports = { inject, apply, format, endColour, baseRadius, endName, barName, COLOURS, EN, ZH, ROUTES,
       KIND }
     return module.exports
   }

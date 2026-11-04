@@ -135,9 +135,4 @@ test('each end has its bar\'s colour, the first end deeper; her map and its name
       assert.ok(out <= 2.2 * R + 1e-9 && out + widths[k] <= half, `${k}: ${out + widths[k]} against ${half}`)
     })
   }
-  const drawn = { people: [{ px: 50, py: 50, size: 6, person: { subject: 'owner' } }],
-    points: [{ px: 10, py: 10, key: 'a' }, { px: 100, py: 100, key: 'b' }] }
-  assert.equal(client.nearest(drawn, 58, 50).person.subject, 'owner')
-  assert.equal(client.nearest(drawn, 104, 103).key, 'b')
-  assert.equal(client.nearest(drawn, 200, 200), null)
 })

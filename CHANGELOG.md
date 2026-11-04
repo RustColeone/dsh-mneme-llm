@@ -10,7 +10,7 @@
   left out until it turns back). `starmap` gives each star and person a place in 3D, and `DIRECTIONS`.
 - **Her arms are a difference now**, not a ratio: 1 as she was born, longer by `GAIN` (3) for each 1 of strength she
   has gained on an end, from 0.3 to 2.4. A feeling she was born with little of no longer flies out for a small gain.
-- The ring around a picked star stays on it when her map is drawn again at another size.
+- Her map no longer says what a star is (pointing at one or tapping it did): it is a picture of her, not a list.
 
 ## 0.3.0 (2026-11-04)
 
