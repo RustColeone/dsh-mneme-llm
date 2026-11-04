@@ -572,6 +572,20 @@ def build() -> dict:
     }
 
 
+def first_difference(kept, given, where: str = "") -> str:
+    """Where two fixtures part first, and what each holds there."""
+    if isinstance(kept, dict) and isinstance(given, dict):
+        for key in sorted(set(kept) | set(given), key=str):
+            if kept.get(key) != given.get(key):
+                return first_difference(kept.get(key), given.get(key), f"{where}.{key}")
+    if isinstance(kept, list) and isinstance(given, list) and len(kept) == len(given):
+        for index, (one, other) in enumerate(zip(kept, given)):
+            if one != other:
+                return first_difference(one, other, f"{where}[{index}]")
+    return f"  at {where or '(top)'}:\n  kept:  {json.dumps(kept, ensure_ascii=False)[:800]}\n  gives: " \
+           f"{json.dumps(given, ensure_ascii=False)[:800]}"
+
+
 def main() -> int:
     found = build()
     if "--check" in sys.argv[1:]:
@@ -581,6 +595,7 @@ def main() -> int:
                 if json.loads(json.dumps(found[key])) != kept.get(key):
                     print(f"{TARGET.name}: {key} differs from what mneme-llm {mneme_llm.__version__} gives",
                           file=sys.stderr)
+                    print(first_difference(kept.get(key), json.loads(json.dumps(found[key]))), file=sys.stderr)
             return 1
         return 0
     TARGET.write_text(json.dumps(found, separators=(",", ":")) + "\n", encoding="utf-8")  # (ASCII: it holds lone
