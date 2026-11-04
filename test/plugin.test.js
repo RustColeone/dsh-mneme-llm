@@ -41,7 +41,7 @@ const PROMPT = 'You are an AI agent.\n\n你是小鲸。' // (DSH's system prompt
 /** A stand-in for DSH: listeners composed as cordis composes them (`prepend` goes first), the requests its loop makes,
  * and, with `clock`, a plugin like DSH's time context, adding a message to every step. */
 function harness (config, { model = true, clock = false } = {}) {
-  const handlers = {}, logs = [], asked = [], commands = {}, tools = {}
+  const handlers = {}, logs = [], asked = [], commands = {}, tools = {}, routes = {}
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-'))
   let projection = null
   const ctx = {
@@ -49,6 +49,7 @@ function harness (config, { model = true, clock = false } = {}) {
     inject: (names, apply) => apply(ctx),
     effect: () => {},
     commands: { register: command => { commands[command.name] = command } },
+    connection: { fetch: { register: route => { routes[route.path] = route } } },
     tools: { register: tool => { tools[tool.name] = tool } },
     sessionProjections: { register: definition => { projection = definition },
       stateOf: (session, key) => key === projection.key ? session.events.reduce(projection.apply, projection.init())
@@ -88,7 +89,8 @@ function harness (config, { model = true, clock = false } = {}) {
   const looped = new WeakSet() // (the requests DSH's loop makes)
   const made = hooks(ctx, config, { isAgentLoopRequest: request => looped.has(request),
     createUserMessage: given => ({ id: `m${++ids}`, role: 'user', ...given }), home })
-  return { handlers, logs, asked, commands, tools, agent: { session }, session, appended, home, looped, ...made }
+  return { handlers, logs, asked, commands, tools, routes, agent: { session }, session, appended, home, looped,
+    ...made }
 }
 
 /** The messages in a session log, in order. */
@@ -610,3 +612,18 @@ test('the plugin\'s tau and sensitivity start a gut with no settings of its own;
     gut.close()
     mneme.close()
   })
+
+test('her panel\'s routes on DSH\'s API: her gut woken with the plugin\'s settings, and a change kept', async () => {
+  const h = harness({ name: 'xiaojing', companion: '小鲸', user: 'Leo', sensitivity: 0.3 })
+  const ask = (route, body) => h.routes[route].fetch(new Request(`http://127.0.0.1${route}`, body === undefined ? {}
+    : { method: 'POST', body: JSON.stringify(body) })).then(response => response.json())
+  assert.ok(!h.gut.awake)
+  const shown = await ask('/api/mneme-llm.gut')
+  assert.ok(h.gut.awake)
+  assert.deepEqual([shown.you, shown.companion, shown.report.sensitivity], ['owner', '小鲸', 0.3])
+  assert.equal((await ask('/api/mneme-llm.change', { tau: 90 })).report.tau, 90)
+  assert.deepEqual(h.gut.settings, { tau: 90, sensitivity: 0.3, nudge: {} })
+  assert.ok((await ask('/api/mneme-llm.starmap')).stars.length > 100) // (her starter's rows)
+  h.gut.close()
+  h.mneme.close()
+})

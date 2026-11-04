@@ -29,6 +29,7 @@ import * as py from '../lib/python.js'
 import { NEAR } from '../lib/relations.js'
 import * as texts from '../lib/text.js'
 import { Toolbox, specs } from '../lib/tools.js'
+import { serve } from './panel.js'
 
 const STARTER = fileURLToPath(new URL('../starter.json.gz', import.meta.url))
 const DAY = 86400
@@ -209,6 +210,12 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
     mneme.close()
     gut?.close()
   }, 'mneme-llm: her files')
+  // Her panel's routes, on DSH's API: what the plugin's settings and her sidebar tab read, and the changes the
+  // settings make (panel.js).
+  ctx.inject(['connection'], scope => serve(scope.connection, () => {
+    if (gut) wake(gut, config)
+    return gut
+  }, { you: subject, companion: mneme.companionName }))
 
   /** The person a sender is: you (in DSH, or on an account of yours), or someone she meets, who is to her what
    * `others` says until you say more. */

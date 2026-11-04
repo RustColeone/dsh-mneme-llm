@@ -20,6 +20,20 @@ Her gut as mneme-llm 0.5.0 has it, so a file still moves between the two, whiche
   `setAge(lessons)`. They outlast `wipe`. The plugin takes `tau` and `sensitivity`, and gives her gut her time zone.
 - **A word she says mostly to one person is theirs** (`OWN`, 80% of its uses): their name or their in-joke shows in her
   line only with them, never to someone new.
+- **A panel in DeepSeek Harness** (`plugin/client.js`, the plugin's client half). On the plugin's page under Plugins:
+  her gut's settings, changed in the running plugin and kept in her gut file (`tau`, sensitivity, her age with a
+  "young again", and nature and now for each of her 24 ends, by bar), saved together. In the right sidebar, a tab
+  (她的心 · Her gut) with her star map, her bars lately against usual, SAN and self-esteem, how grown up she is and the
+  people she knows, looking again every few seconds while it is in view; a button in the conversation's header opens
+  it. Light and dark themes, phone widths too. Both read and change her gut through three routes on DSH's own API,
+  behind its sign-in and for its owner only (`plugin/panel.js`).
+- **Her star map** (`lib/starmap.js`): every row of her heart is a star placed toward the ends it pulls her to (a
+  softmax of its weights along her arms), as bright as it leans, in the colour of the bar of its strongest end; her
+  arms are how much more or less she feels each end than as she was born, over her own latest lessons; each person is
+  one star more, placed by what is different with them.
+- **The plugin's `tau` and `sensitivity` start a gut that has no settings of its own.** Once her settings are changed
+  (on the panel, say), her gut keeps them and they are the latest word; before, the plugin's `sensitivity` was applied
+  again at every start.
 - **Forgetting a person** removes how she is with them, their name from the gut's lessons and the sides only they
   wanted; what they did to her heart stays.
 - **Fixed:** an objection while she was in a side she was given counted against a side that had grown; a starter that

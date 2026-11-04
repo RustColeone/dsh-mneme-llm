@@ -17,6 +17,7 @@
     "./lib": "./lib/index.js",
     "./lib/meaning": "./lib/meaning/index.js",
     "./lib/*": "./lib/*.js",
+    "./client": "./plugin/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
@@ -47,6 +48,9 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   },
   "peerDependencies": {
