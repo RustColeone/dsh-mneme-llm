@@ -14,9 +14,10 @@ import { main, parse } from '../lib/cli.js'
 import { Gut } from '../lib/gut.js'
 import { specs } from '../lib/tools.js'
 
-const P = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8')).cli
+const FIXTURES = JSON.parse(fs.readFileSync(new URL('./fixtures/parity.json', import.meta.url), 'utf8'))
+const P = FIXTURES.cli
 const BIN = fileURLToPath(new URL('../bin/dsh-mneme-llm.js', import.meta.url))
-const PYTHON_SERVER = '"serverInfo": {"name": "mneme-llm", "version": "0.5.0"}'
+const PYTHON_SERVER = `"serverInfo": {"name": "mneme-llm", "version": "${FIXTURES.mneme_llm}"}` // (whose they are)
 const SERVER = '"serverInfo": {"name": "dsh-mneme-llm", "version": "0.3.0"}'
 const BOUND = ['--db', 'mcp.db', '--config', 'companion.toml', 'mcp', '--subject', 'discord:42']
 const UNBOUND = ['--db', 'mcp2.db', '--config', 'companion.toml', 'mcp']

@@ -519,6 +519,17 @@ test('a turn reads the person beside her note, and a failed reading loses no les
   gut.close()
 })
 
+test('she answers in the language she is given, whatever they write in', async () => {
+  const gut = new G.Gut(file())
+  gut.wake()
+  const ask = async messages => messages[0].content === G.FORM ? '{"language": "en"}' : '{}'
+  const turn = new G.Turn(gut, ask, '', 'had lunch with a coworker', 'a', 'ja')
+  assert.ok((await turn.feel([], '', 85, 0)).endsWith('Reply in Japanese.'))
+  assert.equal(gut.languages.has('a'), false) // (what they write in is not read for her answers)
+  assert.throws(() => new G.Turn(gut, ask, '', 'hi', 'a', 'Klingon'), /language is one of/)
+  gut.close()
+})
+
 test('a slow model does not hold her up, and a wipe leaves her as she was born', async () => {
   const gut = new G.Gut(file())
   gut.wake()

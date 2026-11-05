@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- **Her Character Card (角色卡) is a section of DSH's system prompt** once it is on: every call carries it and no
+  compaction reaches it, as a persona card plugin's would. It is yours alone: the plugin's new `card` setting writes it
+  to her file when it is new or changed (and turns it on), and `$card` shows, sets, turns on or off and clears it,
+  whichever came last being her card; anyone else's `$card` is refused. `$first`, its name before, still works;
+  `/mneme-first` is `/mneme-card` now. Her gut reads her card as who she is when `character` is not set, and
+  `$new deep` keeps it. In the library the first prompt is the Character Card: `Surface.card`, `setCard`, `cardOn`,
+  `dropCard` and `Card` (the old names still work), and `Surface.read` no longer puts it in front of the turns.
+- **Her note goes into each model call of its turn, and into nothing DSH keeps**: it no longer stays in the session
+  log, so the notes of earlier turns no longer pile up there. DSH hands a turn's call over frozen, so the plugin makes
+  it again with a copy that has the note, marked as the loop's (`markAgentLoopRequest`).
+- **A chat mode, as one of DSH's agent presets**: the plugin adds "Chat with <her name>" to DSH's modes (Standard,
+  Minimal, …), picked for each new session or set as the default in DSH's settings (`chat: false` leaves it out). A
+  session in it is a chat with her, not a coding agent at work: DSH's own persona row with her card as its text, the
+  whole system prompt (`complete`, true by default; false keeps DSH's and other plugins' sections beside it), DSH's
+  clock and compaction, and none of its shell, files, search, skills, plans or subagents. What she keeps of lately
+  (the surface) is put in front of the session's first private message, once, and stays there as what was said so
+  far; her look leaves those exchanges out. Any other session is DSH at work: her card in its system prompt and nothing
+  of before in front of it.
+- **A language for her to answer in** (`language`: `auto`, `english`, `chinese`, `cantonese` or `japanese`): she
+  answers in it whatever people write in (her gut's line says it; without a gut, her note), the plugin answers its
+  commands in it (in Japanese too now), and her memory's own lines are in Chinese for Chinese and Cantonese. `auto`, as
+  before: each person's own. In the library, `Turn` takes the language as its last argument, as in mneme-llm.
+- **Her look leaves out what the session in front of her still shows** (`skip` on `look` and `alook`): an exchange
+  DSH compacted away may come back.
+- **A bar for a look with words alone**, as in mneme-llm: `memory.said_words`, the share of the message's weight
+  (each word by its idf) an exchange must share to come; what a search adds has none. It ships at 0.25,
+  which keeps a look on an everyday message to about 900 to 1,700 characters instead of about 6,700; 0 keeps every match.
+
 - **A 14th bar, trust: 猜疑 suspicious or 信任 trusting** (`trust` in `BARS`), as in mneme-llm: what she believes
   people mean toward her, in her heart and in each person's table, so she can be born suspicious and still trust one
   person. It goes last, so a 0.3 gut file is widened as it is read (its 24 ends as they were, the new two as nothing

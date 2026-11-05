@@ -1,4 +1,4 @@
-// This package against Python's mneme-llm, without Python: test/fixtures/parity.json holds what mneme-llm 0.5.0 gives
+// This package against Python's mneme-llm, without Python: test/fixtures/parity.json holds what mneme-llm 0.7.0 gives
 // for the same inputs (tools/fixtures.py wrote it; CI writes it again from the released package and fails on a
 // difference).
 import assert from 'node:assert/strict'
@@ -35,8 +35,8 @@ const textOf = text => [T.terms(text), py.repr(T.tokens(text)), T.fold(text), T.
   T.blank(text), P.text.clips.map(n => T.clip(text, n)), P.text.fits.map(n => T.fit(text, n)), py.split(text).join(' ')]
 const near = (actual, expected) => close(assert, actual, expected)
 
-test('the fixtures are mneme-llm 0.5.0\'s, with the tokenizer this package has', () => {
-  assert.equal(P.mneme_llm, '0.5.0')
+test('the fixtures are mneme-llm 0.7\'s, with the tokenizer this package has', () => {
+  assert.ok(P.mneme_llm.startsWith('0.7.'), P.mneme_llm)
   assert.equal(P.terms_version, T.version())
 })
 

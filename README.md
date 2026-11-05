@@ -57,20 +57,23 @@ Roughly how it works:
 **Deep memory and the surface.** Every exchange stays in deep memory, word for word. The surface is just the newest
 part of it, not a second copy. Her model gets it as turns. It covers the last 30 talking days and never holds less
 than 70,000 tokens. When it reaches twice that, the older part becomes one short summary. The words themselves stay
-in deep memory. A host that keeps its own conversation, like DSH, sends the surface once at the start of a new
-session, then handles the rest of the compaction itself.
+in deep memory. A host that keeps its own conversation, like DSH, does not need it: there the session itself is what
+she has in front of her, and her gut reads the surface for its vote.
 
 **Talking days.** Time here counts only the days a person talks with her, and a new day starts at 4 in the morning. A
 month away does not age anything; a month of daily talk does.
 
 **The look.** So what about older things? Before she answers, the exchanges that best match the message come back
 word for word, each with when it was said, within a budget of 6,000 characters. They fade as talking days pass. The
-more an exchange has faded, the closer the message must be to bring it back. Her `search` and `read` tools can still
-look through everything else.
+more an exchange has faded, the closer the message must be to bring it back. With words alone (no embeddings, as in
+the DSH plugin), `memory.said_words` can be the bar instead: the share of the message's weight an exchange must share,
+each word weighted by how rare it is (0.25 as it ships; 0 for none; what a search adds has no bar). A host can leave out what the conversation in front of her
+still shows (`skip`). Her `search` and `read` tools can still look through everything else.
 
-**The first prompt.** The first thing a person says to her is usually who they want her to be. It is kept apart, so
-it does not fade. The person can also set it themselves. When they turn it on, a new session starts with
-{first prompt} + {surface} + {the new message}.
+**The Character Card.** Who she is, in your own words: a persona card, kept apart from the conversation so it does not
+fade. At first it is the first thing a person said to her, which is usually that; it can be set. It is used only once
+it is turned on. Then the host puts it in its system prompt, which every call carries and no compaction reaches, so it
+is not lost as a conversation grows. Whose card a host uses is its own choice: the DSH plugin uses yours alone.
 
 **Notes.** Each note is one sentence and has a kind. `fact` and `preference` last; `episode`, `plan` and `reflection`
 fade. A plan starts fading on the day it happens. A *key* (`pet.name`, `exam.math.date`) says what the note is about.
@@ -160,8 +163,8 @@ are plain calls (`prompt`, `look`, `recall`, `remember`, `forget`). Settings you
 config; `dsh-mneme-llm config template` prints every key. For the time zone, use `null` for the machine's zone,
 `{ name: 'Asia/Shanghai' }`, `{ offset: 28800 }`, or the config's `companion.zone`, such as `UTC+8`.
 
-`m.surface.first`, `setFirst`, `sendFirst` and `dropFirst` handle the first prompt. `m.surface.clear` starts the
-surface over. `m.wipe` removes what she remembers of a person; `m.erase` removes everything about them.
+`m.surface.card`, `setCard`, `cardOn` and `dropCard` handle the Character Card (`first`, `setFirst`, `sendFirst` and
+`dropFirst`, its names before, still work). `m.surface.clear` starts the surface over. `m.wipe` removes what she remembers of a person; `m.erase` removes everything about them.
 
 **Her gut** works at two moments: with your message before she answers, and with her reply after:
 
@@ -226,23 +229,35 @@ Install it into a profile, then add it to that profile's patch, `~/.dsh/profiles
         name: xiaojing            # her folder in DSH's home: ~/.dsh/mneme-llm/xiaojing (memory.db, gut.db)
         companion: 小鲸            # her name, as her memory keeps her lines
         user: Leo                 # your name
-        character: 你是小鲸……      # who she is, for her gut's vote and her notes
+        card: 你是小鲸……           # her Character Card: in DSH's system prompt, every call (off: $card off)
+        language: auto            # what she answers in: auto, english, chinese, cantonese or japanese
         role: family              # who you are to her; closeness then comes from the file
         tags:                     # sides she has: a name from her list and one sentence of what she does
           小绿茶: 你表面天真体贴，提到别的女生时先夸她，再用委屈的语气让她显得不如你。
 ```
 
+**Two modes.** The plugin adds a mode to DSH's own (Standard, Minimal, …): **Chat with 小鲸**. Pick it in the mode
+menu when you start a session, or make it the default in DSH's settings for every new session.
+
+| | Chat with 小鲸 | Standard and the other modes |
+|---|---|---|
+| she is | a companion you chat with | DSH at work, as herself |
+| system prompt | her card alone (`complete: false` keeps DSH's and other plugins' sections beside it) | DSH's, with her card as one section |
+| tools | her search and read, and none of DSH's shell, files, search, skills, plans or subagents | all of DSH's, and hers |
+| a new session starts with | what she keeps of lately (the surface), word for word, kept there as what was said so far | nothing of before |
+
+![Setup and a chat with her in DSH](docs/setup-and-chat.gif)
+
 Here is what happens each turn:
 
-1. **A new session** starts with what she remembers of the person, after DSH's system prompt. A session counts as new
-   when DSH's events show she has said nothing yet. First comes their first prompt, exactly as they wrote it, if they
-   turned it on. Then comes the surface: a summary of what she let go and the newest exchanges with that person,
-   across sessions, as text showing who said what and when. All of this goes in the session's first step, so it
-   reopens as it was, even after DSH restarts.
-2. **Before her first step**, the plugin adds one message beside yours. It says who you are to her, or names the
-   person she is talking with if it is someone else. It also holds her notes, her look at relevant past exchanges,
-   news of her mood, and her gut's line. Her word habits appear in that line only for people at closeness 40 or more.
-   The message stays in the session until DSH compacts it.
+1. **Her Character Card**, once it is on, is in DSH's system prompt, read again at every step. Every call carries it,
+   and no compaction reaches it. In a chat session, the first private message has the surface in front of it; in any
+   other mode, a new session has nothing of before in front of it.
+2. **Before her first step**, the plugin works out one note. It says who you are to her, or names the person she is
+   talking with if it is someone else. It also holds her notes, her look at relevant past exchanges that the session
+   no longer shows, news of her mood, and her gut's line. Her word habits appear in that line only for people at
+   closeness 40 or more. The note goes into each model call of that turn, just before your message, and into nothing
+   DSH keeps: the next turn has the next note, so none of them piles up in the session.
 3. **Her tools** `mneme_search` and `mneme_read` let her look through everything said before with that person.
 4. **After her reply**, the plugin works in the background. It keeps the exchange word for word. Her model
    judges her mood and writes any notes worth keeping, and the surface lets go of what is old. Once a day, she writes
@@ -256,8 +271,7 @@ sent it: their words go inside one element, with their account as its first attr
 nickname="Leo">…</message>` (that is `qq:10001`). Each sender is a separate person to her, with their own memory, mood
 and closeness. The accounts in `accounts` are you.
 
-Text before the element marks a group. In a group, the plugin puts none of what she remembers in front of a new
-session, and no search comes with her look. Her look includes what the sender said with her in any chat, and what
+Text before the element marks a group. In a group, no search comes with her look. Her look includes what the sender said with her in any chat, and what
 was said with her in that group. It never includes anyone else's private chats.
 
 A group message to her usually starts by mentioning her account (`@20002 …`). The plugin treats an account as hers
@@ -268,25 +282,32 @@ A turn that starts any other way counts as her speaking up on her own. The plugi
 thing said, but not what prompted it (another plugin's words to her). Her mood follows her message, and no notes are
 taken from it.
 
-The plugin works alongside other plugins, such as a chat channel or persona cards. It adds its messages to each
-turn's first step, which DSH puts after its system prompt. So her persona comes before what she remembers. The plugin
-leaves the system prompt and the rest of the context to the other plugins.
+The plugin works alongside other plugins, such as a chat channel or persona cards. Its card is one section of DSH's
+system prompt, beside theirs: with another plugin's persona card for her, leave hers off (or out). In the chat mode
+her card is the whole system prompt, so other plugins' sections are left out there, unless `complete` is false. It
+writes nothing to the session but the surface at the start of a chat, so it leaves the session and its compaction to
+DSH and the other plugins. DSH hands a turn's model call
+to plugins frozen; to add her note, the plugin makes the call again with a copy that has it, which DSH's own
+listeners read as its loop's call, so a plugin listening before this one sees each of those calls twice.
 
-**Commands.** Type these as messages. The plugin answers directly in the chat, with no model call, in English or
-Chinese to match what you write. The command words themselves (`on`, `off`, `clear`, `deep`, `gut`) do not choose a
-language. The plugin uses the language of the words you give with the command, or what you wrote last.
+**Commands.** Type these as messages. The plugin answers directly in the chat, with no model call, in English,
+Chinese or Japanese to match what you write (or in her `language`, when it is set). The command words themselves
+(`on`, `off`, `clear`, `deep`, `gut`) do not choose a language. The plugin uses the language of the words you give with
+the command, or what you wrote last.
 
 | | |
 |---|---|
-| `$first` | show the first prompt she keeps for you |
-| `$first <text>` | set it |
-| `$first on` / `$first off` | put it in front of every new session, or just keep it |
-| `$first clear` | remove it |
-| `$new` | a fresh start: new sessions begin with nothing from before in front of them; every word stays in deep memory |
+| `$card` | show her Character Card |
+| `$card <text>` | set it |
+| `$card on` / `$card off` | put it in her system prompt, or just keep it |
+| `$card clear` | remove it |
+| `$new` | a fresh start: what she keeps of lately starts over; every word stays in deep memory |
 | `$new deep` | permanently clear what she remembers of everyone (only you can use this) |
 | `$new gut` | clear that and what people taught her gut, leaving her as she was born (only you can use this) |
 
-In DSH's own command list, these are `/mneme-first` and `/mneme-new`.
+`$card` is yours alone (her card is who she is, with everyone), and `$first`, its name before, still works. In DSH's
+own command list, these are `/mneme-card` and `/mneme-new`. `$new deep` keeps her card: it is who she is, not
+something she remembers.
 
 **Settings.**
 
@@ -294,7 +315,10 @@ In DSH's own command list, these are `/mneme-first` and `/mneme-new`.
 |---|---|
 | `name` | her folder under DSH's home, `mneme-llm/<name>`; also her space in the file |
 | `companion`, `user` | her name and yours |
-| `character` | who she is, for her gut |
+| `card` | her Character Card: written to her file when it is new or changed, and turned on; `$card` changes it too, and whichever came last is her card |
+| `language` | what she answers in, whatever people write in: `auto` (each person's own, the default), `english`, `chinese`, `cantonese` or `japanese`; the plugin's answers and her memory's own lines follow it |
+| `chat`, `complete` | the chat mode among DSH's modes (`chat: false` for none); in it, her card as the whole system prompt (`complete: false` keeps DSH's and other plugins' sections beside it) |
+| `character` | who she is, for her gut, when that is not her card |
 | `role`, `closeness` | who you are to her; without a role, how close you are (85 by default; below 40 she learns only how she is with you) |
 | `accounts` | accounts that belong to you on a chat channel, such as `qq:10001` |
 | `others` | everyone else's role when she meets them (`acquaintance`; `''` for no role) |
