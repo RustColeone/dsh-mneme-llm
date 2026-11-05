@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Two accounts of one person are one person to her gut**, as in mneme-llm 0.8: `Gut.link(old, person)`. The lessons
+- **Two accounts of one person are one person to her gut**, as in mneme-llm 0.7.1: `Gut.link(old, person)`. The lessons
   and sightings `old` gave become `person`'s, how she is with them is one table (the two weighed by their lessons),
   and her heart is not touched. The plugin joins the accounts in `accounts` to you when her gut wakes, with what they
   taught her before they were linked.

@@ -20,7 +20,7 @@ jobs:
       - run: npm test
 
   python:
-    name: Against mneme-llm 0.8.0 (Python 3.13)
+    name: Against mneme-llm 0.7.1 (Python 3.13)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install "mneme-llm @ git+https://github.com/RustColeone/mneme-llm@v0.8.0"
+      - run: pip install "mneme-llm @ git+https://github.com/RustColeone/mneme-llm@v0.7.1"
       - name: The fixtures are what that mneme-llm gives
         run: python tools/fixtures.py --check
       - name: lib/unicode.js is what Python 3.13's tables give
