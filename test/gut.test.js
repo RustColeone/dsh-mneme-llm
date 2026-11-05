@@ -519,6 +519,37 @@ test('a turn reads the person beside her note, and a failed reading loses no les
   gut.close()
 })
 
+test('two accounts of one person are joined, and her heart is not touched', async () => {
+  const where = file(), gut = new G.Gut(where)
+  gut.wake()
+  const teach = (subject, count, feel) => {
+    for (let i = 0; i < count; i++) gut.teach(subject, 'zh', FORM, { feel, mood: 1 }, 85, ['喵'])
+  }
+  teach('webui:leo', 30, JEALOUS)
+  teach('discord:42', 10, { calm: 0.9 })
+  await gut.sleep()
+  gut.tunePerson('discord:42', { end: 'sweet', nature: 2.0 })
+  gut.tunePerson('webui:leo', { end: 'sad', nature: -1.0 })
+  gut.language('discord:42', { language: 'yue' }, 'x')
+  gut.setAge(50)
+  const heart = JSON.stringify(gut.net.heart.kept())
+  assert.equal(gut.link('discord:42', 'webui:leo'), true)
+  assert.deepEqual([...gut.net.people.keys()], ['webui:leo'])
+  assert.equal(gut.net.people.get('webui:leo').n, 40)
+  assert.equal(JSON.stringify(gut.net.heart.kept()), heart)
+  assert.equal(gut.report().age, 50)
+  assert.deepEqual(gut.settings.people['webui:leo'].nudge, { sweet: 2.0, sad: -1.0 })
+  assert.deepEqual([...gut.languages], [['webui:leo', 'yue']])
+  assert.equal(gut.link('discord:42', 'webui:leo'), false)
+  gut.close()
+  const again = new G.Gut(where)
+  again.wake()
+  assert.deepEqual([[...again.net.people.keys()], again.report().age], [['webui:leo'], 50])
+  assert.deepEqual([...again.languages], [['webui:leo', 'yue']])
+  assert.throws(() => again.link('', 'webui:leo'), /a person is a subject/)
+  again.close()
+})
+
 test('she answers in the language she is given, whatever they write in', async () => {
   const gut = new G.Gut(file())
   gut.wake()

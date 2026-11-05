@@ -33,7 +33,7 @@ const probe = spawnSync(PYTHON, ['-c', 'import mneme_llm, unicodedata; print(mne
   'unicodedata.unidata_version)'], { encoding: 'utf8' })
 const [version, unicode] = probe.status === 0 ? probe.stdout.trim().split(' ') : []
 const skip = probe.status !== 0 ? 'no Python with mneme-llm here (MNEME_LLM_PYTHON, PYTHONPATH)'
-  : !version.startsWith('0.7.') ? `mneme-llm ${version} is not 0.7` : false
+  : !version.startsWith('0.8.') ? `mneme-llm ${version} is not 0.8` : false
 if (skip && process.env.MNEME_LLM_REQUIRE) throw new Error(`MNEME_LLM_REQUIRE is set, and ${skip}`) // (CI: never skip)
 const folder = () => fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-compat-'))
 const tool = (name, ...args) => python([path.join(TOOLS, name), ...args])

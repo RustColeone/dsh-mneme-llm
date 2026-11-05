@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Two accounts of one person are one person to her gut**, as in mneme-llm 0.8: `Gut.link(old, person)`. The lessons
+  and sightings `old` gave become `person`'s, how she is with them is one table (the two weighed by their lessons),
+  and her heart is not touched. The plugin joins the accounts in `accounts` to you when her gut wakes, with what they
+  taught her before they were linked.
 - **Her Character Card (角色卡) is a section of DSH's system prompt** once it is on: every call carries it and no
   compaction reaches it, as a persona card plugin's would. It is yours alone: the plugin's new `card` setting writes it
   to her file when it is new or changed (and turns it on), and `$card` shows, sets, turns on or off and clears it,

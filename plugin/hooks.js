@@ -260,6 +260,23 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   }
   if (config.role) settle('no role', () => mneme.relate(subject, config.role)) // (the same role again changes nothing)
   for (const account of config.accounts || []) settle(`${account} is not yours`, () => mneme.link(account, subject))
+  /** Her gut awake, knowing people as her memory does: an account linked to someone (yours, in `accounts`) is joined
+   * to them, with what it taught her before the link. */
+  const rouse = () => {
+    if (gut.awake) return
+    wake(gut, config)
+    settle('accounts not joined in her gut', () => {
+      const known = new Set([...gut.net.people.keys(), ...gut.languages.keys(), ...Object.keys(gut.settings.people),
+        ...gut.sightings.map(row => row.subject)])
+      for (const row of gut._open().prepare("select distinct subject from lessons where subject != ''").all()) {
+        known.add(row.subject)
+      }
+      for (const account of [...known].sort()) {
+        const person = mneme.person(account)
+        if (person !== account) gut.link(account, person)
+      }
+    })
+  }
   ctx.effect(() => () => {
     mneme.close()
     gut?.close()
@@ -267,7 +284,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   // Her panel's routes, on DSH's API: what the plugin's settings and her sidebar tab read, and the changes the
   // settings make (panel.js).
   ctx.inject(['connection'], scope => serve(scope.connection, () => {
-    if (gut) wake(gut, config)
+    if (gut) rouse()
     return gut
   }, { you: subject, companion: mneme.companionName, memory: mneme }))
 
@@ -488,7 +505,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
       mneme.surface.cardOn(subject, card.on)
     }
     if (tier === 'deep' || !gut) return { kind: 'success', text: told('new.deep', { count }) }
-    wake(gut, config)
+    rouse()
     return { kind: 'success', text: told('new.gut', { count, lessons: await gut.wipe() }) }
   }
 
@@ -685,7 +702,7 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   /** Her gut's reading of the message, which starts at once. */
   function withTurn (agent, held) {
     if (held.alone || !gut || !modelOf(agent, config)) return held
-    wake(gut, config)
+    rouse()
     return { ...held, turn: new Turn(gut, (messages, tokens) => ask(agent, messages, tokens), characterOf(), held.said,
       held.person.subject, language) }
   }

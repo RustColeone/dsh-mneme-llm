@@ -701,6 +701,22 @@ test('with no model yet there is no line, and the exchange is kept all the same;
   h.mneme.close()
 })
 
+test('an account of yours her gut knew apart is joined to you when it wakes', async () => {
+  const where = folder()
+  const before = new G.Gut(path.join(where, 'gut.db'), { starter: null })
+  before.wake()
+  const form = { people: [], topic: ['work'], sender_feels: 'tired' }
+  for (let i = 0; i < 5; i++) before.teach('qq:10001', 'zh', form, { feel: { tender: 1 }, mood: 1 }, 85, [])
+  before.close()
+  const h = harness({ folder: where, companion: '小鲸', user: 'Leo', role: 'family', accounts: ['qq:10001'] })
+  await turn(h, '今天加班好累', '辛苦了。')
+  assert.deepEqual([...h.gut.net.people.keys()], ['owner'])
+  await until(() => h.gut.net.people.get('owner').n === 6) // (this turn's lesson, a moment after her reply)
+  assert.equal(h.gut.net.people.get('owner').n, 6)
+  h.mneme.close()
+  h.gut.close()
+})
+
 test('her gut from the plugin\'s settings: her zone, how fast she grows up, and how hard things hit her', () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mneme-dsh-'))
   const { mneme, gut } = open({ name: 'xiaojing', zone: 'Asia/Shanghai', tau: 300, sensitivity: 0.5 }, home)
