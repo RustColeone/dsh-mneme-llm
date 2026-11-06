@@ -29,6 +29,8 @@ window.__ModuleLoader__.load({
 //
 // `starmap(box, view)`, if given, draws her star map into a box on the Gut tab (and may return a function that stops
 // it); `dark()` says whether the page is dark (for the colours of her feelings); `words` are a host's own over these.
+// A host's own settings come in its view as `rows`, each { tab, key, kind: bool | choice | number | text | info, label,
+// hint, group (each { en, zh }), value; options for a choice, min, max and step for a number }.
 ;(function (root, make) {
   if (typeof module === 'object' && module && module.exports) module.exports = make()
   else root.MnemeSettings = make()
@@ -70,6 +72,7 @@ window.__ModuleLoader__.load({
     // Her
     'her.title': 'Who she is',
     'her.name': 'Her name',
+    'her.nameHint': '',
     'her.language': 'The language she answers in',
     'her.languageHint': 'Whatever people write in. Each person\'s own: she answers each in theirs.',
     'language.auto': 'Each person\'s own',
@@ -121,6 +124,7 @@ window.__ModuleLoader__.load({
     'me.removed': 'removed when you save',
     'me.added': 'added when you save',
     'me.noAccounts': 'None yet.',
+    'me.fixed': 'in the settings file',
     'me.badAccount': 'A channel and an id, such as qq:10001.',
     'others.title': 'People she meets',
     'others.role': 'Who they are to her at first',
@@ -220,6 +224,7 @@ window.__ModuleLoader__.load({
     you: '你',
     'her.title': '她是谁',
     'her.name': '她的名字',
+    'her.nameHint': '',
     'her.language': '她回答用的语言',
     'her.languageHint': '不管对方用什么语言写。选“跟着对方”，她就用每个人自己的语言回答。',
     'language.auto': '跟着对方',
@@ -268,6 +273,7 @@ window.__ModuleLoader__.load({
     'me.removed': '保存后去掉',
     'me.added': '保存后添加',
     'me.noAccounts': '还没有。',
+    'me.fixed': '写在设置文件里',
     'me.badAccount': '写平台名和账号，比如 qq:10001。',
     'others.title': '她新认识的人',
     'others.role': '刚认识时对她来说是',
@@ -400,7 +406,7 @@ window.__ModuleLoader__.load({
     if (Object.values(draft.gut.sides).some(item => item.fresh && !String(item.what || '').trim())) {
       return 'sides.needsWhat'
     }
-    if (Object.values(draft.memory).some(value => value === null)) return 'memory.bad'
+    if ([...Object.values(draft.memory), ...Object.values(draft.rows)].some(value => value === null)) return 'memory.bad'
     const card = draft.her.card
     if (card && card.on === true && !String(card.text ?? view?.her?.card?.text ?? '').trim()) return 'card.needsText'
     return null
@@ -468,6 +474,7 @@ window.__ModuleLoader__.load({
 .ms-slider.ms-changed .ms-number { color: var(--ms-accent-); font-weight: 600 }
 .ms-slider.ms-changed > .ms-dim:first-child { color: var(--ms-accent-) }
 .ms-range { display: flex; gap: 8px; align-items: center }
+.ms-page input[type=range], .ms-page input[type=checkbox] { accent-color: var(--ms-accent-) }
 .ms-range input { flex: 1 1 160px; min-width: 120px }
 .ms-button { height: 30px; padding: 0 14px; border-radius: 8px; font: inherit; cursor: pointer; color: inherit;
   background: transparent; border: .5px solid var(--ms-strong-) }
@@ -503,7 +510,7 @@ window.__ModuleLoader__.load({
 .ms-stack { display: flex; flex-direction: column; gap: 4px }
 .ms-accounts { display: flex; flex-direction: column; gap: 4px }
 .ms-account { display: flex; align-items: center; gap: 8px; min-height: 30px }
-.ms-account > span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px }
+.ms-account > span:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px }
 .ms-start { display: grid; grid-template-columns: minmax(10em, auto) 1fr; gap: 8px 12px; align-items: center }
 .ms-map { min-height: 40px }
 .ms-savebar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
@@ -654,7 +661,7 @@ window.__ModuleLoader__.load({
     const hintOf = row => row.hint?.[languageOf()] ?? row.hint?.en ?? ''
     const roleName = key => {
       if (!key) return t('people.noRole')
-      const role = view.roles.find(item => item.key === key)
+      const role = (view.roles || []).find(item => item.key === key)
       const own = role?.names?.[chinese() ? 'zh' : 'en'] ?? role?.names?.en
       const name = t(`role.${key}`)
       return own || (name === `role.${key}` ? key : name)
@@ -677,12 +684,12 @@ window.__ModuleLoader__.load({
       })
       return box
     }
-    function numberBox ({ value, saved, put, min, step = 1, key }) {
+    function numberBox ({ value, saved, put, min, max, step = 1, key }) {
       const box = el('input', { className: classes('ms-input', value !== saved && 'ms-changed'),
-        attrs: { type: 'number', value: String(value), min, step }, data: { key } })
+        attrs: { type: 'number', value: String(value), min, max, step }, data: { key } })
       box.addEventListener('input', () => {
         const number = Number(box.value), good = box.value !== '' && Number.isFinite(number) &&
-          (min === undefined || number >= min)
+          (min === undefined || number >= min) && (max === undefined || number <= max)
         box.setAttribute('aria-invalid', String(!good))
         box.classList.toggle('ms-changed', good && number !== saved)
         stage(() => put(good ? number : undefined), true)
@@ -763,6 +770,13 @@ window.__ModuleLoader__.load({
             items: row.options.map(option => ({ value: option.value, name: option.label?.[languageOf()] ??
               option.label?.en ?? String(option.value) })) }), hintOf(row), staged)
         }
+        if (row.kind === 'number') {
+          return field(label(row), numberBox({ value: value ?? row.value, saved: row.value, min: row.min, max: row.max,
+            step: row.step ?? 1, key: `row:${row.key}`, put: item => {
+              if (item === undefined) draft.rows[row.key] = null // (no number: nothing is saved until there is one)
+              else put(item)
+            } }), hintOf(row), staged)
+        }
         if (row.kind === 'text') {
           return field(label(row), textBox({ value: value ?? '', saved: row.value ?? '', key: `row:${row.key}`,
             put: item => put(item) }), hintOf(row), staged)
@@ -776,11 +790,11 @@ window.__ModuleLoader__.load({
     function herTab () {
       const her = view.her, staged = draft.her
       const name = staged.name ?? her.name
-      const who = card(t('her.title'), '',
-        field(t('her.name'), textBox({ value: name, saved: her.name, key: 'her:name', put: item => {
+      const fields = [her.name === null || her.name === undefined ? null
+        : field(t('her.name'), textBox({ value: name, saved: her.name, key: 'her:name', put: item => {
           if (item === her.name) delete draft.her.name
           else draft.her.name = item
-        } }), '', 'name' in staged),
+        } }), t('her.nameHint'), 'name' in staged),
         her.language === null || her.language === undefined ? null
           : field(t('her.language'), select({ value: staged.language ?? her.language, changed: 'language' in staged,
             key: 'her:language', text: t('her.language'),
@@ -794,7 +808,8 @@ window.__ModuleLoader__.load({
             placeholder: 'UTC+8', wide: false, max: 64, put: item => {
               if (item === her.zone) delete draft.her.zone
               else draft.her.zone = item
-            } }), t('her.zoneHint'), 'zone' in staged))
+            } }), t('her.zoneHint'), 'zone' in staged)]
+      const who = fields.some(Boolean) ? card(t('her.title'), '', ...fields) : null
       const cardNode = her.card === undefined ? null : characterCard()
       const sides = view.gut ? sidesCard() : null
       return [who, cardNode, ...(hostRows('her') || []), sides]
@@ -936,7 +951,7 @@ window.__ModuleLoader__.load({
       if (!people.length) return card(t('people.title'), '', el('div', { className: 'ms-dim', text: t('people.none') }))
       if (!people.some(item => item.subject === chosen.person)) chosen.person = people[0].subject
       const person = people.find(item => item.subject === chosen.person)
-      const whoOf = item => item.you ? t('you') : item.subject
+      const whoOf = item => item.you ? t('you') : item.name || item.subject
       const items = people.map(item => {
         const staged = draft.people[item.subject] || {}
         const value = staged.closeness ?? item.closeness?.value
@@ -964,9 +979,9 @@ window.__ModuleLoader__.load({
         else delete draft.people[person.subject]
       }
       const role = staged.role !== undefined ? staged.role : person.role
-      const kind = view.roles.find(item => item.key === role)
+      const kind = (view.roles || []).find(item => item.key === role)
       const close = person.closeness
-      const roles = view.roles.filter(item => !item.unique || item.key === person.role ||
+      const roles = (view.roles || []).filter(item => !item.unique || item.key === person.role ||
         !view.people.some(other => other.subject !== person.subject && other.role === item.key))
       const parts = [el('div', { className: 'ms-edit-title' }, who,
         person.gut ? el('span', { className: 'ms-dim', text: t('people.summary', { lessons: person.gut.lessons,
@@ -984,7 +999,7 @@ window.__ModuleLoader__.load({
           } }), '', 'name' in draft.me))
       }
       const roleWords = person.you ? t('people.roleYou') : t('people.role')
-      parts.push(field(roleWords, select({ value: role, changed: staged.role !== undefined, key: 'person:role',
+      if (view.roles) parts.push(field(roleWords, select({ value: role, changed: staged.role !== undefined, key: 'person:role',
         text: roleWords, items: [{ value: '', name: t('people.noRole') }, ...roles.map(item => ({
           value: item.key, name: roleName(item.key) }))],
         put: item => {
@@ -1008,7 +1023,7 @@ window.__ModuleLoader__.load({
             if (value === Boolean(close?.locked)) unset('hold')
             else set('hold', value)
           } }))
-      } else parts.push(el('div', { className: 'ms-dim', text: t('people.needsRole') }))
+      } else if (view.roles) parts.push(el('div', { className: 'ms-dim', text: t('people.needsRole') }))
       if (person.you && view.me?.accounts) parts.push(accounts())
       if (person.gut && view.gut) parts.push(...gutOfPerson(person, staged, set, unset, who))
       return el('div', { className: 'ms-edit' }, ...parts)
@@ -1036,8 +1051,13 @@ window.__ModuleLoader__.load({
           add.click()
         }
       })
+      const fromFile = view.me.fixed || []
       const rows = [...mine.map(account => {
         const leaving = unlink.includes(account)
+        if (fromFile.includes(account)) {
+          return el('div', { className: 'ms-account' }, el('span', { text: account }),
+            el('span', { className: 'ms-dim', text: t('me.fixed') }))
+        }
         return el('div', { className: classes('ms-account', leaving && 'ms-gone') }, el('span', { text: account }),
           leaving ? el('span', { className: 'ms-changed', text: t('me.removed') }) : null,
           el('button', { className: 'ms-button', text: leaving ? t('people.undo') : t('me.remove'),

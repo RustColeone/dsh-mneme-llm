@@ -77,7 +77,9 @@ test('her settings page is page/settings.js word for word, the page every host d
   const plain = value => JSON.parse(JSON.stringify(value)) // (made in the page's own realm)
   assert.deepEqual(Object.keys(S.WORDS.zh).sort(), Object.keys(S.WORDS.en).sort())
   assert.deepEqual(Object.entries(S.WORDS.en).filter(([, words]) => han.test(words)), [])
-  assert.deepEqual(Object.keys(S.WORDS.zh).filter(key => !han.test(S.WORDS.zh[key])), ['me.placeholder'])
+  // (an empty one is a host's own to give: her name's hint)
+  assert.deepEqual(Object.keys(S.WORDS.zh).filter(key => S.WORDS.zh[key] && !han.test(S.WORDS.zh[key])),
+    ['me.placeholder'])
   assert.deepEqual(plain(S.TABS), ['her', 'people', 'memory', 'gut'])
   const draft = S.empty()
   assert.deepEqual([S.counted(draft), plain(S.body(draft)), S.blocked(draft, null)], [0, {}, null])
