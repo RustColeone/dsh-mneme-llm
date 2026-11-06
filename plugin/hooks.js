@@ -33,6 +33,7 @@ import * as py from '../lib/python.js'
 import { NEAR } from '../lib/relations.js'
 import * as texts from '../lib/text.js'
 import { Toolbox, specs } from '../lib/tools.js'
+import { keep } from './kept.js'
 import { serve } from './panel.js'
 
 const STARTER = fileURLToPath(new URL('../starter.json.gz', import.meta.url))
@@ -209,12 +210,15 @@ export function senderOf (message) {
     name: attributes.find(([, key]) => key === 'nickname' || key === 'name')?.[2] || null }
 }
 
+/** Her folder: the plugin's `folder`, or `mneme-llm/<name>` in DSH's `home`. */
+export const folderOf = (config, home) => config.folder || path.join(home, 'mneme-llm', config.name || 'default')
+
 /** Her memory file and her gut, opened from the plugin's settings (see README.md), in DSH's `home` folder. Her word
  * habits are in her line only with the people close enough to teach her gut. `tau` is for a gut with no settings of its
  * own (see `wake`). */
 export function open (config = {}, home) {
   const name = config.name || 'default'
-  const folder = config.folder || path.join(home, 'mneme-llm', name)
+  const folder = folderOf(config, home)
   const seed = { companion: { ...(config.companion ? { name: config.companion } : {}),
     ...(config.zone ? { zone: config.zone } : {}) } }
   const language = spoken(config.language) // (her memory's own lines in it: Chinese for Cantonese too)
@@ -242,13 +246,18 @@ export function wake (gut, config = {}) {
   gut.settings.sensitivity = sensitivity
 }
 
-export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest = null, markAgentLoopRequest = null,
+export function hooks (ctx, given = {}, { createUserMessage, isAgentLoopRequest = null, markAgentLoopRequest = null,
   home }) {
+  // What the plugin's page set of these settings stands over them, until a setting it set is changed here (kept.js);
+  // `config` is always what stands now.
+  const page = keep(folderOf(given, home), given)
+  let config = page.merged()
   const { mneme, gut, folder } = open(config, home)
-  const language = spoken(config.language) // ('': each person's own)
+  let language = spoken(config.language) // ('': each person's own)
   const subject = String(config.subject || 'owner')
   const you = { subject, name: String(config.user || 'user') }
-  const others = config.others === undefined ? 'acquaintance' : String(config.others || '')
+  const othersOf = () => config.others === undefined ? 'acquaintance' : String(config.others || '')
+  let others = othersOf()
   const log = text => ctx.logger?.info?.(`mneme-llm: ${text}`)
   const conversation = agent => `dsh:${agent.session?.id ?? ''}`
   const closeness = person => mneme.relations.get(person.subject)?.closeness ??
@@ -281,13 +290,6 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
     mneme.close()
     gut?.close()
   }, 'mneme-llm: her files')
-  // Her panel's routes, on DSH's API: what the plugin's settings and her sidebar tab read, and the changes the
-  // settings make (panel.js).
-  ctx.inject(['connection'], scope => serve(scope.connection, () => {
-    if (gut) rouse()
-    return gut
-  }, { you: subject, companion: mneme.companionName, memory: mneme }))
-
   // Her Character Card: yours alone, kept in her memory file. The plugin's `card` writes it there when it is new or
   // changed (and turns it on); `$card` changes it too, and whichever came last is the card. On, it is a section of
   // DSH's system prompt, read again at every step, so a change reaches the next call; off, the section is empty and DSH
@@ -327,26 +329,81 @@ export function hooks (ctx, config = {}, { createUserMessage, isAgentLoopRequest
   // Her chat preset: DSH's own persona row with her card as its text (the whole system prompt, unless `complete` is
   // false), DSH's clock and compaction, and nothing of DSH's work: no shell, files, search, skills, plans or
   // subagents, no working directory or sandbox lines. Her tools come in any session, as they do everywhere.
-  if (config.chat !== false) {
-    ctx.inject(['agentPresets'], scope => {
+  // Registered again when its name, words or mode change on the plugin's page: one at a time, the old one gone first.
+  let present = () => {}
+  ctx.inject(['agentPresets'], scope => {
+    let off = null, gone = false, queue = Promise.resolve()
+    const register = async () => {
+      off?.()
+      off = null
+      if (gone || config.chat === false) return
       const words = ownWords(), companion = mneme.companionName
-      let off = null, gone = false
-      scope.agentPresets.register({ id: CHAT, name: say(words, 'chat.name', { companion }), order: 10,
-        description: say(words, 'chat.about', { companion }), plugins: [
-          { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix: `{{${CARD}}}`,
-            complete: config.complete !== false, includeRuntimeContext: false } },
-          { id: 'time-context', name: '@deepseek-ai/dsh-time-context' },
-          { id: 'compaction', name: 'cordis:group', group: true, isolate: { compaction: true }, config: [
-            { id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic' },
-            { id: 'command-compact', name: '@deepseek-ai/dsh-command-compact' }] }] })
-        .then(dispose => { if (gone) dispose(); else off = dispose })
-        .catch(error => log(`no chat preset: ${error?.message}`))
-      scope.effect(() => () => {
-        gone = true
-        off?.()
-      }, 'mneme-llm: her chat preset')
-    })
+      try {
+        const dispose = await scope.agentPresets.register({ id: CHAT, name: say(words, 'chat.name', { companion }),
+          order: 10, description: say(words, 'chat.about', { companion }), plugins: [
+            { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix: `{{${CARD}}}`,
+              complete: config.complete !== false, includeRuntimeContext: false } },
+            { id: 'time-context', name: '@deepseek-ai/dsh-time-context' },
+            { id: 'compaction', name: 'cordis:group', group: true, isolate: { compaction: true }, config: [
+              { id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic' },
+              { id: 'command-compact', name: '@deepseek-ai/dsh-command-compact' }] }] })
+        if (gone) dispose()
+        else off = dispose
+      } catch (error) { log(`no chat preset: ${error?.message}`) }
+    }
+    present = () => {
+      queue = queue.then(register)
+      return queue
+    }
+    queue = register() // (the first at once, as DSH starts)
+    scope.effect(() => () => {
+      gone = true
+      off?.()
+    }, 'mneme-llm: her chat preset')
+  })
+
+  // Her settings on the plugin's page (panel.js): what it shows and the change it makes. What lives in her files is
+  // written there; the plugin's own settings it changes are kept in her folder over them (kept.js) and used at once.
+  const IN_DSH = { en: 'In DeepSeek Harness', zh: '在 DeepSeek Harness 里' }
+  const ROWS = [
+    { tab: 'her', key: 'chat', kind: 'bool', fallback: true, group: IN_DSH,
+      label: { en: 'Her chat mode, among DSH\'s modes', zh: 'DSH 的模式里有和她聊天' },
+      hint: { en: 'In it, her card is the system prompt, with no workspace tools, and what she keeps of lately comes ' +
+        'in front of each new session.', zh: '在这个模式里，角色卡就是系统提示，没有工作区的工具，每个新会话前面放着她记得的最近的对话。' } },
+    { tab: 'her', key: 'complete', kind: 'bool', fallback: true, group: IN_DSH,
+      label: { en: 'Her card is the whole system prompt there', zh: '在聊天模式里，角色卡就是整个系统提示' },
+      hint: { en: 'Off, DSH\'s own sections and other plugins\' come after it.',
+        zh: '关掉的话，DSH 自己的内容和其他插件的内容会接在角色卡后面。' } }
+  ]
+  const host = {
+    mneme, subject, rows: ROWS,
+    gut: () => {
+      if (gut) rouse()
+      return gut
+    },
+    settings: () => config,
+    card: () => {
+      const card = mneme.surface.card(subject)
+      return card ? { ...card, how: card.text === fromSettings() ? 'settings' : card.byCommand ? 'set' : 'said' }
+        : null
+    },
+    start: tier => fresh(you, tier),
+    /** The plugin's own settings the page changed, kept over them and used from now on. */
+    keep: values => {
+      page.set(values)
+      config = page.merged()
+      language = spoken(config.language)
+      others = othersOf()
+      you.name = String(config.user || 'user')
+      if ('language' in values) {
+        mneme.displayLanguage = language ? (language === 'yue' ? 'zh' : language)
+          : mneme.config.get('companion.display_language')
+      }
+      if (['companion', 'language', 'chat', 'complete'].some(key => key in values)) present()
+    }
   }
+  ctx.inject(['connection'], scope => serve(scope.connection, host.gut, { you: subject, companion: mneme.companionName,
+    memory: mneme, host }))
 
   /** The person a sender is: you (in DSH, or on an account of yours), or someone she meets, who is to her what
    * `others` says until you say more. */

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Her settings in four tabs on DSH's page, Her · People · Memory · Gut**, saved together and used at once: her name,
+  language, zone, Character Card, chat mode and sides; everyone she knows with their role and closeness, your name and
+  accounts, and the role of people she meets; how much the surface keeps, the look, and starting over; and her gut as
+  before, with her star map. What lives in her files is written there; the plugin's own settings changed on the page
+  are kept in her folder (`settings.json`) over its configuration, the latest word winning. Her chat mode is registered
+  again when its name or mode changes. The page is one framework-free file, `page/settings.js`, which other programs
+  that keep her can draw (`tools/copies.mjs` keeps `plugin/client.js`'s copy word for word); its route is
+  `/api/mneme-llm.settings`.
+- **`Mneme.change(values)`**, as in mneme-llm: writes config keys, all checked first, and uses them at once in every
+  part that keeps a copy.
 - **Two accounts of one person are one person to her gut**, as in mneme-llm 0.7.1: `Gut.link(old, person)`. The lessons
   and sightings `old` gave become `person`'s, how she is with them is one table (the two weighed by their lessons),
   and her heart is not touched. The plugin joins the accounts in `accounts` to you when her gut wakes, with what they

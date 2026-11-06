@@ -20,8 +20,8 @@ function load () {
   vm.runInNewContext(SOURCE, { window: { __ModuleLoader__: { load: entry => { loaded = entry } } }, document: page })
   assert.equal(loaded.id, 'dsh-mneme-llm') // (the bare package name: DSH ties it to the plugin's row)
   return loaded.factory(name => {
-    assert.equal(name, 'react') // (all it needs from the page)
-    return react
+    assert.ok(['react', 'react-dom'].includes(name), name) // (all it needs from the page)
+    return name === 'react' ? react : { createPortal: (child, where) => ({ portal: child, where }) }
   })
 }
 
@@ -51,7 +51,8 @@ test('the bundle registers her settings, her sidebar tab and a button to open it
   assert.deepEqual(opened, [client.KIND])
   assert.deepEqual(Object.keys(client.ZH).sort(), Object.keys(client.EN).sort())
   assert.equal(client.format('{a} of {b}, {c}', { a: 3, b: 'x' }), '3 of x, {c}')
-  assert.deepEqual(Object.values(client.ROUTES), ['api/mneme-llm.gut', 'api/mneme-llm.starmap', 'api/mneme-llm.change'])
+  assert.deepEqual(Object.values(client.ROUTES), ['api/mneme-llm.gut', 'api/mneme-llm.starmap', 'api/mneme-llm.change',
+    'api/mneme-llm.settings'])
 })
 
 test('each page shows one language: English words on an English page, Chinese names on a Chinese one', () => {
@@ -66,56 +67,44 @@ test('each page shows one language: English words on an English page, Chinese na
   assert.equal(client.endName(zh, view, 'happy'), 'happy') // (a name the page was not sent stays as it is)
 })
 
-test('the settings page renders, in each language, with a real view: lists, one editor each, and her sides as tags',
-  async () => {
-    const { Gut } = await import('../lib/gut.js')
-    const { view } = await import('../plugin/panel.js')
-    const { Mneme } = await import('../lib/mneme.js')
-    const where = fs.mkdtempSync(path.join(os.tmpdir(), 'client-'))
-    const gut = new Gut(path.join(where, 'g.db'))
-    gut.wake()
-    const form = { people: [], gender: [], topic: ['rain'], event: ['rained'], sender_feels: 'tired', toward_you: 'none' }
-    for (let i = 0; i < 6; i++) gut.teach(i % 2 ? 'owner' : 'qq:2', 'zh', form, { feel: { sad: 0.4 }, mood: 1 }, 85, [])
-    gut.writeSide('御姐', '你从容。', 3)
-    gut.lockSide('御姐', { often: 0.5 })
-    const memory = new Mneme(path.join(where, 'm.db'), 's', { embed: false, memoryLanguage: null })
-    memory.relate('owner', 'creator')
-    const shown = view(gut, { you: 'owner', memory })
-    gut.close()
-    memory.close()
-    for (const [words, expected] of [['EN', ['People she knows', 'Lock her in this side', 'creator', '御姐']],
-      ['ZH', ['她认识的人', '把她锁在这一面', '创造者', '御姐']]]) {
-      const states = [shown]
-      const element = (type, props, ...children) => typeof type === 'function'
-        ? type({ ...(props || {}), children }) : { type, props: props || {}, children }
-      const react = { createElement: element, useRef: () => ({ current: null }), useEffect: () => {}, useMemo: w => w(),
-        useState: init => [states.length ? states.shift() : typeof init === 'function' ? init() : init, () => {}] }
-      let loaded = null
-      vm.runInNewContext(SOURCE, { window: { __ModuleLoader__: { load: entry => { loaded = entry } } },
-        document: { createElement: () => ({ dataset: {}, remove: () => {} }), head: { appendChild: () => {} } },
-        getComputedStyle: () => ({ color: 'rgb(20, 20, 20)' }) })
-      const client = loaded.factory(() => react)
-      let Settings = null
-      client.apply({ effect: () => {}, locale: { register: () => {}, bind: () => key => key }, inject: () => {},
-        slots: { register: (options, component) => component,
-          inject: (name, make) => { const made = make(); if (name === 'plugins.bundle.config') Settings = made } } })
-      const t = (key, values) => client.format(client[words][key] ?? key, values)
-      const texts = [], kinds = []
-      const walk = node => {
-        if (node === null || node === undefined || node === false) return
-        if (Array.isArray(node)) return node.forEach(walk)
-        if (typeof node !== 'object') return texts.push(String(node))
-        kinds.push(node.props.className || '')
-        walk(node.children)
-      }
-      walk(Settings({ view: 'page', t }))
-      const all = texts.join('|')
-      for (const text of expected) assert.ok(all.includes(text), `${words}: ${text}`)
-      assert.equal(kinds.filter(kind => kind === 'mnl-edit').length, 3) // one editor each: a feeling, a person, a side
-      assert.equal(kinds.filter(kind => kind === 'mnl-list').length, 2) // lists: her feelings, the people she knows
-      assert.ok(kinds.some(kind => kind.split(' ').includes('mnl-tag'))) // her sides, as tags
-    }
-  })
+test('her settings page is page/settings.js word for word, the page every host draws, in both languages', async () => {
+  const { bundled } = await import('../tools/copies.mjs')
+  const page = fs.readFileSync(new URL('../page/settings.js', import.meta.url), 'utf8')
+  assert.equal(bundled(SOURCE, page), SOURCE, 'node tools/copies.mjs writes it again')
+  const box = { module: { exports: {} } }
+  vm.runInNewContext(page, box)
+  const S = box.module.exports, han = /[\u3400-\u9fff]/
+  const plain = value => JSON.parse(JSON.stringify(value)) // (made in the page's own realm)
+  assert.deepEqual(Object.keys(S.WORDS.zh).sort(), Object.keys(S.WORDS.en).sort())
+  assert.deepEqual(Object.entries(S.WORDS.en).filter(([, words]) => han.test(words)), [])
+  assert.deepEqual(Object.keys(S.WORDS.zh).filter(key => !han.test(S.WORDS.zh[key])), ['me.placeholder'])
+  assert.deepEqual(plain(S.TABS), ['her', 'people', 'memory', 'gut'])
+  const draft = S.empty()
+  assert.deepEqual([S.counted(draft), plain(S.body(draft)), S.blocked(draft, null)], [0, {}, null])
+  draft.her.name = '鲸酱'
+  draft.her.card = null
+  draft.me.link.push('qq:10001')
+  draft.others = 'friend'
+  draft.people.owner = { closeness: 95, tune: { happy: 1, sad: -1 } }
+  draft.memory.surface_days = 7
+  draft.rows.complete = false
+  draft.gut.tau = '200'
+  draft.gut.tune.calm = { nature: 2, now: 0.1 }
+  draft.gut.sides.御姐 = { fresh: true, what: '你从容。' }
+  assert.equal(S.counted(draft), 13)
+  assert.deepEqual(plain(S.body(draft)), { her: { name: '鲸酱', card: null }, me: { link: ['qq:10001'] }, others: 'friend',
+    people: [{ subject: 'owner', closeness: 95, tune: [{ end: 'happy', nature: 1 }, { end: 'sad', nature: -1 }] }],
+    memory: { surface_days: 7 }, rows: { complete: false },
+    gut: { tau: 200, tune: [{ end: 'calm', nature: 2, now: 0.1 }], sides: [{ name: '御姐', what: '你从容。' }] } })
+  for (const [change, words] of [[d => { d.gut.tau = '0' }, 'settings.badTau'],
+    [d => { d.gut.sides.x = { fresh: true } }, 'sides.needsWhat'], [d => { d.memory.surface_cap = null }, 'memory.bad'],
+    [d => { d.her.card = { on: true } }, 'card.needsText']]) {
+    const bad = S.empty()
+    change(bad)
+    assert.equal(S.blocked(bad, { her: { card: null } }), words)
+  }
+  assert.equal(S.blocked({ ...S.empty(), her: { card: { on: true } } }, { her: { card: { text: 'kept' } } }), null)
+})
 
 test('each end has its bar\'s colour, the first end deeper; her map and its names fit their square', () => {
   const client = load()

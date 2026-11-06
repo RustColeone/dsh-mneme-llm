@@ -766,3 +766,83 @@ test('her panel\'s routes on DSH\'s API: her gut woken with the plugin\'s settin
   h.gut.close()
   h.mneme.close()
 })
+
+/** The plugin's page: what GET /api/mneme-llm.settings shows, or what a POST of `body` answers. */
+async function page (h, body) {
+  const where = 'http://dsh/api/mneme-llm.settings'
+  const request = body === undefined ? new Request(where)
+    : new Request(where, { method: 'POST', body: JSON.stringify(body) })
+  const response = await h.routes['/api/mneme-llm.settings'].fetch(request)
+  return [response.status, await response.json()]
+}
+const tick = () => new Promise(resolve => setTimeout(resolve, 0))
+
+test('her settings page: four tabs, one save across them used at once and kept, and the latest word', async () => {
+  const config = { folder: folder(), companion: '小鲸', user: 'Leo', role: 'creator', card: '你是小鲸。',
+    language: 'chinese' }
+  let h = harness(config)
+  let [status, view] = await page(h)
+  assert.equal(status, 200)
+  assert.deepEqual([view.her.name, view.her.language, view.her.card], ['小鲸', 'chinese',
+    { text: '你是小鲸。', on: true, how: 'settings' }])
+  assert.deepEqual([view.me, view.others], [{ name: 'Leo', accounts: [] }, 'acquaintance'])
+  assert.deepEqual(view.people.map(person => [person.subject, person.you, person.role]), [['owner', true, 'creator']])
+  assert.deepEqual([view.memory.surface_days, view.memory.said_words], [30, 0.25])
+  assert.deepEqual(view.rows.map(row => [row.tab, row.key, row.value]), [['her', 'chat', true], ['her', 'complete', true]])
+  assert.deepEqual([view.starts, view.gut.bars.length], [['fresh', 'deep', 'gut'], 14])
+
+  ;[status, view] = await page(h, { her: { name: '鲸酱', language: 'japanese', card: { text: '你是鲸酱。' } },
+    me: { name: 'Leo Y', link: ['qq:10001'] }, others: 'friend', people: [{ subject: 'owner', closeness: 95, hold: true }],
+    memory: { surface_days: 7, said_words: 0.4 }, rows: { complete: false }, gut: { sensitivity: 0.5 } })
+  assert.equal(status, 200, JSON.stringify(view))
+  assert.deepEqual([view.her.name, view.her.language, view.her.card], ['鲸酱', 'japanese',
+    { text: '你是鲸酱。', on: true, how: 'set' }])
+  assert.deepEqual([view.me, view.others], [{ name: 'Leo Y', accounts: ['qq:10001'] }, 'friend'])
+  assert.deepEqual([view.people[0].closeness.value, view.people[0].closeness.locked], [95, true])
+  assert.deepEqual([view.memory.surface_days, view.memory.said_words, view.gut.report.sensitivity], [7, 0.4, 0.5])
+  await tick() // (her preset is registered again)
+  assert.deepEqual([h.mneme.companionName, h.mneme.surface.span, h.mneme.saidWords, h.mneme.person('qq:10001')],
+    ['鲸酱', 7, 0.4, 'owner'], 'used at once')
+  assert.deepEqual([h.presets['mneme-chat'].name, h.presets['mneme-chat'].plugins[0].config.complete],
+    ['鲸酱とおしゃべり', false])
+  assert.equal(h.variables.mneme_card(), '你是鲸酱。')
+  h.gut.close()
+  h.mneme.close()
+
+  h = harness(config) // (started again, its settings as they were: what the page set stands)
+  ;[, view] = await page(h)
+  assert.deepEqual([view.her.name, view.her.language, view.me.name, view.others, view.rows[1].value, view.her.card.text],
+    ['鲸酱', 'japanese', 'Leo Y', 'friend', false, '你是鲸酱。'])
+  h.gut.close()
+  h.mneme.close()
+  h = harness({ ...config, language: 'english' }) // (a setting changed there: the latest word)
+  ;[, view] = await page(h)
+  assert.deepEqual([view.her.language, view.her.name, view.others], ['english', '鲸酱', 'friend'])
+  h.gut.close()
+  h.mneme.close()
+})
+
+test('her settings page: a save lands whole or not at all, start goes alone, and with no gut there is none', async () => {
+  const h = harness({ folder: folder(), companion: '小鲸', user: 'Leo', role: 'creator', gut: false })
+  let [status, view] = await page(h)
+  assert.deepEqual([status, view.gut, view.starts], [200, null, ['fresh', 'deep']])
+  ;[status, view] = await page(h, { her: { name: 'Other' }, others: 'friend', memory: { surface_days: 0 } })
+  assert.deepEqual([status, /surface_days/.test(view.error)], [400, true])
+  ;[, view] = await page(h)
+  assert.deepEqual([view.her.name, view.others], ['小鲸', 'acquaintance'], 'nothing of it landed')
+  for (const [body, error] of [[{ gut: { sensitivity: 0.5 } }, /no gut/], [{ start: 'gut' }, /start is fresh, deep/],
+    [{ start: 'deep', her: { name: 'X' } }, /start is sent alone/], [{ me: { link: ['owner'] } }, /not an account/],
+    [{ people: [{ subject: 'qq:2', role: 'creator' }] }, /owner is her creator already/],
+    [{ people: [{ subject: 'qq:2', closeness: 50 }] }, /qq:2 has no role/], [{ rows: { chat: 'yes' } }, /true or false/],
+    [{ her: { language: 'klingon' } }, /language is auto/], [{ memory: { said_cut: 0.1 } }, /not a memory setting/]]) {
+    ;[status, view] = await page(h, body)
+    assert.equal(status, 400, JSON.stringify(body))
+    assert.match(view.error, error)
+  }
+  ;[status, view] = await page(h, { people: [{ subject: 'qq:2', role: 'friend', closeness: 60 }] })
+  assert.deepEqual([status, view.people.map(person => [person.subject, person.role, person.closeness?.value])],
+    [200, [['owner', 'creator', 100], ['qq:2', 'friend', 60]]])
+  ;[status, view] = await page(h, { start: 'deep' })
+  assert.equal(status, 200)
+  h.mneme.close()
+})

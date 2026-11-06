@@ -141,7 +141,8 @@ test('the routes: her gut, her star map until her heart changes, and a change an
       woken += 1
       return gut
     }, { you: 'owner', companion: '小鲸' })
-    assert.deepEqual(Object.keys(routes).sort(), Object.values(ROUTES).sort())
+    assert.deepEqual(Object.keys(routes).sort(), Object.values(ROUTES).filter(route => route !== ROUTES.settings).sort(),
+      'the settings only with a host')
     let [status, body] = await ask(ROUTES.gut)
     assert.deepEqual([status, body.companion, body.report.lessons, body.bars.length], [200, '小鲸', 0, 14])
     const [, map] = await ask(ROUTES.starmap)

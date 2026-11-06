@@ -29,6 +29,24 @@ test('the file takes a config once, when it first meets the space; an option win
   m.close()
 })
 
+test('a change is used at once and kept', () => {
+  const where = file()
+  const m = new Mneme(where, 's', { embed: false, companionName: 'Fei', surfaceDays: 30 })
+  assert.equal(m.change({ 'companion.name': '小鲸', 'companion.display_language': 'zh', 'memory.surface_days': 7,
+    'memory.surface_cap': 9000, 'memory.said_budget': 3000, 'memory.said_words': 0.4, 'memory.said_cut_faded': 0.3,
+    'relations.fade_days': 10.0, 'mood.threshold': 0.8 }), 9)
+  assert.deepEqual([m.companionName, m.mood.companionName, m.surface.companionName], ['小鲸', '小鲸', '小鲸'])
+  assert.deepEqual([m.surface.span, m.surface.cap, m.saidBudget, m.saidWords], [7, 9000, 3000, 0.4])
+  assert.deepEqual([m.saidCut, m.relations.fadeDays, m.mood.settings.threshold], [[0.08, 0.3], 10.0, 0.8])
+  assert.deepEqual(new Set([m.displayLanguage, m.surface.words.language, m.mood.words.language]), new Set(['zh']))
+  assert.throws(() => m.change({ 'companion.name': 'Other', 'memory.surface_days': 0 }), py.ValueError) // (whole)
+  assert.deepEqual([m.companionName, m.config.get('companion.name'), m.surface.span], ['小鲸', '小鲸', 7])
+  m.close()
+  const again = new Mneme(where, 's', { embed: false })
+  assert.deepEqual([again.companionName, again.surface.span, again.saidWords], ['小鲸', 7, 0.4])
+  again.close()
+})
+
 test('every value is checked when it is set, and a stored one that no longer passes is passed over', () => {
   const [m] = companion()
   assert.throws(() => m.config.set('memory.surface_cap', 10), py.ValueError)

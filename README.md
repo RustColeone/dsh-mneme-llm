@@ -334,19 +334,32 @@ something she remembers.
 Everything else lives in the file's own config: how much the surface keeps, the look's budget, her prompts and
 sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --space xiaojing config show`.
 
-**Her gut, on DSH's page.** The plugin brings a panel to DSH's web page:
+**Her settings and her gut, on DSH's page.** The plugin brings two things to DSH's web page:
 
-- **Plugins → dsh-mneme-llm** changes her gut while it runs: `tau` (how many lessons her heart takes to grow up; she
-  is grown up at five times it), sensitivity (−1 钝感, things hit her lightly, to 1 敏感, they hit her hard), her age
-  with a "young again" button (she learns fast again and forgets nothing), and each of her 26 feelings by hand,
-  grouped by her 14 bars: *nature* (−6 to 6) is where she stands on it, as if she had been born so, and she lives on
-  from there (a locked heart keeps it), 0 removes it; *now* (−1 to 1) is how much more or less of it she feels lately
-  than usual, and it fades as she lives. Changes are saved
-  together, reach the running plugin at once and are kept in her gut file (`gut.db`). From then on they win over
-  `tau` and `sensitivity` in the plugin's settings, which only start a gut that has no settings of its own. The same
-  page locks her heart, sets each person she knows by hand (closeness and its lock, how much what is different with
-  them counts, a lock on how she is with them, a nudge to each feeling with them alone, and forgetting them), and her
-  sides: each sentence and weight, a new side, dropping one, and the side she is locked in with how often it shows.
+- **Plugins → dsh-mneme-llm**: her settings in four tabs, saved together and used at once.
+  - **Her**: her name, the language she answers in, her time zone, her Character Card (its words, and whether it is
+    in her system prompt), her chat mode and whether her card is its whole prompt, and her sides (each sentence and
+    weight, a new side, dropping one, and the side she is locked in with how often it shows).
+  - **People**: everyone she knows, you first: who each is to her, how close, and a lock on closeness; for you, what
+    she calls you and your accounts on chat channels; with her gut, how much what is different with them counts, a
+    lock on how she is with them, a nudge to each feeling with them alone, and forgetting them in her gut. And the role
+    of people she meets.
+  - **Memory**: how much the surface keeps (days of talking, at least and at most, her model's window), the look of
+    what was said before (its characters, and the bar for words alone), and starting over: lately, everyone, or as she
+    was born.
+  - **Gut**: her star map, growing up (`tau`, how many lessons her heart takes to grow up, and she is grown up at five
+    times it; her age, and "young again": she learns fast again and forgets nothing; locking her heart), sensitivity
+    (−1 钝感, things hit her lightly, to 1 敏感, they hit her hard), and each of her 26 feelings by hand, grouped by
+    her 14 bars: *nature* (−6 to 6) is where she stands on it, as if she had been born so, and she lives on from there
+    (a locked heart keeps it), 0 removes it; *now* (−1 to 1) is how much more or less of it she feels lately than
+    usual, and it fades as she lives.
+
+  What lives in her files is written there: her name, zone, card, roles, closeness, links and memory settings in
+  `memory.db`, everything of her gut in `gut.db`. The plugin's own settings changed here (`companion`, `user`,
+  `language`, `role`, `accounts`, `others`, `chat`, `complete`) are kept in her folder (`settings.json`) over its
+  configuration, and the latest word wins: one changed in the configuration afterwards is used again. `tau` and
+  `sensitivity` in the configuration only start a gut that has no settings of its own. The page is one file,
+  `page/settings.js`, with no framework: another program that keeps her can draw it too, with its own settings route.
 - **Her gut** (她的直觉), a tab in the right sidebar (the heart button in a conversation's header opens it): the star
   map of her heart and the people she knows (each dot one thing she notices, placed toward the feeling it pulls her to,
   brighter the more it leans; the lines her arms, how much more or less of each feeling she has now than when she was
@@ -355,7 +368,7 @@ sentences. To see it: `dsh-mneme-llm --db ~/.dsh/mneme-llm/xiaojing/memory.db --
   and the people she knows with how much of how she is with each is theirs alone. It updates every few seconds while it is open,
   follows DSH's light and dark themes, and fits a phone.
 
-The panel reads and changes her gut through three routes on DSH's own API (`/api/mneme-llm.gut`,
+The panel reads and changes her through routes on DSH's own API (`/api/mneme-llm.settings`, `/api/mneme-llm.gut`,
 `/api/mneme-llm.starmap`, `/api/mneme-llm.change`), which need DSH's sign-in and answer only its owner.
 
 ## The command line

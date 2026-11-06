@@ -25,6 +25,7 @@
     "bin",
     "lib",
     "plugin",
+    "page",
     "starter.json.gz",
     "cordis.patch.yml",
     "README.md",
